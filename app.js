@@ -10,7 +10,21 @@ const button = (label, className, fn) => { const b = el('button', className, lab
 const config = window.TURBOSHOT || {};
 let apiBase = '';
 try { const u = new URL(config.API_BASE); if (u.protocol === 'https:' || (u.protocol === 'http:' && u.hostname === 'localhost')) apiBase = u.href.replace(/\/$/, ''); } catch {}
-let session = sessionStorage.getItem('turboshot-session') || '';
+function readSavedSession() {
+  const key='turboshot-session';
+  let saved='';
+  try { saved=localStorage.getItem(key)||''; } catch {}
+  if(!saved) try { saved=sessionStorage.getItem(key)||''; } catch {}
+  if(saved) try { localStorage.setItem(key,saved); } catch {}
+  try { sessionStorage.removeItem(key); } catch {}
+  return saved;
+}
+function saveSession(token) {
+  session=token;
+  try { localStorage.setItem('turboshot-session',token); sessionStorage.removeItem('turboshot-session'); }
+  catch { try { sessionStorage.setItem('turboshot-session',token); } catch {} }
+}
+let session = readSavedSession();
 let me = null, mode = 'latest', cursor = null, authMode = 'login', linkTicket = '', searchTerm = '', feedRequest = 0;
 let toastTimer, viewObserver, otpChallenge='', circleId='', circleName='', circleCache=[], postOperation=0, profileRefreshing=false;
 let selectedVideo=null,pendingUpload=null,uploadXHR=null,previewURL='',videoSelection=0;
@@ -83,7 +97,7 @@ $('#post-dialog').addEventListener('close',()=>{ postOperation++; cancelUpload()
 function openDialog(id) { document.querySelectorAll('.post video').forEach(v=>v.pause()); const dialog = $(id); if (!dialog.open) dialog.showModal(); }
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); } }));
-function clearSession() { session = ''; me = null; sessionStorage.removeItem('turboshot-session'); updateAccount(); }
+function clearSession() { session = ''; me = null; try { localStorage.removeItem('turboshot-session'); } catch {} try { sessionStorage.removeItem('turboshot-session'); } catch {} updateAccount(); }
 function updateAccount() {
   $('#login').hidden = !!me; $('#signup').hidden = !!me; $('#account').hidden = !me;
   $('#moderation').hidden = !me?.admin;
@@ -154,7 +168,7 @@ $('#auth-form').addEventListener('submit', async e => {
     if(data.requiresCode && data.challenge) {
       showAuth('verify-otp'); otpChallenge=data.challenge; $('#auth-code').focus(); message($('#auth-message'),data.message,true);
     } else if ((authMode === 'login' || authMode==='verify-otp') && data.token && data.user) {
-      session = data.token; me = data.user; sessionStorage.setItem('turboshot-session',session); seenThisVisit.clear(); updateAccount();
+      saveSession(data.token); me = data.user; seenThisVisit.clear(); updateAccount();
       $('#auth-dialog').close(); toast(`Welcome, @${me.username}.`); await loadFeed();
     } else {
       message($('#auth-message'),data.message,true);
@@ -231,6 +245,7 @@ async function chooseMode(next, keepCircle = false) {
   $('#hero').hidden = mode !== 'latest' || !!circleId; await loadFeed();
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => chooseMode(b.dataset.mode)));
+$('#brand-home').addEventListener('click',e=>{e.preventDefault();searchTerm='';$('#search').value='';chooseMode('latest');window.scrollTo({top:0,behavior:'smooth'});});
 $('#search-form').addEventListener('submit',e => { e.preventDefault(); searchTerm = $('#search').value.trim(); loadFeed(); });
 $('#search').addEventListener('search', () => { if (!$('#search').value) { searchTerm=''; loadFeed(); } });
 document.addEventListener('keydown',e => { if (e.key === '/' && !document.querySelector('dialog[open]') && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); $('#search').focus(); } });
@@ -449,7 +464,7 @@ $('#cleanup-media').addEventListener('click',async()=>{
   try {const data=await api('cleanup-media');$('#cleanup-status').textContent=data.cleanupPending?'Cleanup is queued. Check storage access and retry.':`Processed ${data.mediaCleanup?.processed || 0} cleanup job(s); ${data.mediaCleanup?.pending || 0} waiting or queued. Try again to process the next job.`;}
   catch(err){$('#cleanup-status').textContent=err.message;} finally {b.disabled=false;}
 });
-$('#logout').addEventListener('click',async () => { try { await api('logout'); clearSession(); $('#settings-dialog').close(); toast('You have been signed out.'); if (mode === 'mine') await chooseMode('latest'); else await loadFeed(); } catch (err) { toast(err.message); } });
+$('#logout').addEventListener('click',async () => { try { await api('logout'); } catch {} clearSession(); $('#settings-dialog').close(); toast('You have been signed out on this device.'); if (mode === 'mine') await chooseMode('latest'); else await loadFeed(); });
 $('#password-form').addEventListener('submit',async e => {
   e.preventDefault(); const submit = e.target.querySelector('button'); submit.disabled = true;
   await perform('change-password',{currentPassword:$('#current-password').value,password:$('#new-password').value},null,async () => { $('#password-form').reset(); clearSession(); $('#settings-dialog').close(); await chooseMode('latest'); }); submit.disabled = false;

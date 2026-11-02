@@ -39,3 +39,11 @@ input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="tr
   .brand img{width:100%;height:100%;max-width:100%;object-fit:contain;position:static;left:auto}
   .hero-logo{width:min(42%,190px);height:auto;right:2%;top:48%;transform:translateY(-50%);opacity:.82}
 }
+
+/* Keep the hero copy and mark in separate areas so they never overlap. */
+.hero-copy{max-width:51%}
+.hero-logo{width:min(43%,320px);right:2.5%}
+@media(max-width:680px){
+  .hero-copy{max-width:56%}
+  .hero-logo{width:min(38%,175px);right:2%}
+}

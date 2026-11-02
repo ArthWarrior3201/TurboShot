@@ -16,7 +16,7 @@
 <a class="skip" href="#main">Skip to feed</a>
 <div class="shell">
   <aside class="sidebar">
-    <a class="brand" href="./" aria-label="TurboShot home"><img src="assets/logo.png?round-2026" alt="TurboShot rocket logo"></a>
+    <a class="brand" id="brand-home" href="./" aria-label="TurboShot home"><img src="assets/logo.png?round-2026" alt="TurboShot rocket logo"></a>
     
     <nav aria-label="Main navigation"><button class="nav" id="circles-button"><span>◎</span><span>Circles</span></button>
       <button class="nav active" data-mode="latest"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg><span>Home feed</span></button>
@@ -75,7 +75,7 @@
   <div class="auth-links"><button class="text-button" id="auth-switch">Create an account</button><button class="text-button" id="forgot">Forgot password?</button><button class="text-button" id="resend">Resend verification</button></div>
   
 </dialog>
-<dialog id="post-dialog" aria-labelledby="post-title"><button class="close" data-close aria-label="Close dialog">×</button><h2 id="post-title">Create a post</h2><form id="post-form"><label>Post type<select id="post-kind"><option value="post">Post</option><option value="zap">Zap video</option></select></label><label>Your caption<textarea id="post-text" rows="5" maxlength="1200" placeholder="What would you like to share?" required></textarea></label><label id="media-label">Image <span class="muted">(optional)</span><input id="post-media" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"><small>Choose an image from your device.</small></label><label>Share to<select id="post-circle"><option value="">Home feed</option></select></label><div id="video-upload" hidden>
+<dialog id="post-dialog" aria-labelledby="post-title"><button class="close" data-close aria-label="Close dialog">×</button><h2 id="post-title">Create a post</h2><form id="post-form"><label>Post type<select id="post-kind"><option value="post">Post</option><option value="zap">Zap video</option></select></label><label>Caption<textarea id="post-text" rows="5" maxlength="1200" placeholder="What would you like to share?" required></textarea></label><label id="media-label">Image <span class="muted">(optional)</span><input id="post-media" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"><small>Choose an image from your device.</small></label><label>Share to<select id="post-circle"><option value="">Home feed</option></select></label><div id="video-upload" hidden>
 <label>Video file<input id="post-video" type="file" accept="video/mp4,video/webm,.mp4,.webm"></label>
 <video id="upload-preview" controls playsinline preload="metadata" hidden></video>
 <label>Category<select id="post-category"><option value="gaming">Gaming</option><option value="sports">Sports</option><option value="comedy">Comedy</option><option value="music">Music</option><option value="art">Art</option><option value="science">Science</option><option value="tech">Tech</option><option value="travel">Travel</option><option value="nature">Nature</option><option value="learning">Learning</option><option value="other">Other</option></select></label>
