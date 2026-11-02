@@ -12,7 +12,7 @@ let apiBase = '';
 try { const u = new URL(config.API_BASE); if (u.protocol === 'https:' || (u.protocol === 'http:' && u.hostname === 'localhost')) apiBase = u.href.replace(/\/$/, ''); } catch {}
 let session = sessionStorage.getItem('turboshot-session') || '';
 let me = null, mode = 'latest', cursor = null, authMode = 'login', linkTicket = '', searchTerm = '', feedRequest = 0;
-let toastTimer, viewObserver;
+let toastTimer, viewObserver, otpChallenge='';
 let selectedVideo=null,pendingUpload=null,uploadXHR=null,previewURL='',videoSelection=0;
 const playbacks=new Set(),loadedPostIds=new Set();
 const seenThisVisit = new Set();
@@ -33,7 +33,7 @@ async function api(action, input = {}, method = 'POST') {
     const detail=result.error || 'Something went wrong. Please try again.';
     const configurationIssue=(response.status===403 && /origin/i.test(detail)) || (response.status===503 && /not configured|configure .*first|vault key|repository connection|origin setting/i.test(detail));
     const error=new Error(configurationIssue?'TurboShot is being set up. Please try again shortly.':detail);
-    error.status=response.status; error.configurationIssue=configurationIssue; throw error;
+    error.status=response.status; error.configurationIssue=configurationIssue; error.fields=Array.isArray(result.fields)?result.fields:[]; throw error;
   }
   return result;
 }
@@ -97,39 +97,54 @@ function updateAccount() {
 function needAccount() { if (me) return true; showAuth('login'); return false; }
 function showAuth(next = 'login') {
   authMode = next;
+  if(next!=='verify-otp') otpChallenge='';
+  document.querySelectorAll('#auth-form [aria-invalid]').forEach(n=>n.removeAttribute('aria-invalid'));
+  const code=next==='verify-otp';
   const signup = next === 'signup', login = next === 'login', reset = next === 'reset', verify = next === 'verify';
   const request = next === 'request-reset' || next === 'resend';
   $('#auth-form').reset();
-  $('#auth-title').textContent = ({ login:'Welcome back',signup:'Create your account', 'request-reset':'Reset your password',resend:'Verify your email',reset:'Choose a new password',verify:'Verify your email' })[next];
-  $('#auth-description').textContent = ({ login:'Sign in to your TurboShot account.', signup:'Enter your details to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send another email verification link.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
+  $('#auth-title').textContent = ({ 'verify-otp':'Check your email',login:'Welcome back',signup:'Create your account', 'request-reset':'Reset your password',resend:'Verify your email',reset:'Choose a new password',verify:'Verify your email' })[next];
+  $('#auth-description').textContent = ({ 'verify-otp':'Enter the 6-digit code we sent you. It expires in 10 minutes.',login:'Sign in to your TurboShot account.', signup:'Enter your details to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send a new code to finish creating your account.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
   $('#username-label').hidden = !signup; $('#auth-username').required = signup;
-  $('#email-label').hidden = reset || verify; $('#auth-email').required = !reset && !verify;
+  $('#email-label').hidden = reset || verify || code; $('#auth-email').required = !reset && !verify && !code;
+  $('#code-label').hidden=!code; $('#auth-code').required=code;
   $('#email-label').firstChild.textContent = login ? 'Email or username' : 'Email address';
   $('#auth-email').type = login ? 'text' : 'email';
   $('#auth-email').autocomplete = login ? 'username' : 'email';
-  $('#password-label').hidden = request || verify; $('#auth-password').required = !request && !verify;
+  $('#password-label').hidden = request || verify || code; $('#auth-password').required = !request && !verify && !code;
   $('#auth-password').minLength = signup || reset ? 12 : 1;
   $('#auth-password').autocomplete = signup || reset ? 'new-password' : 'current-password';
   $('#password-help').hidden = !signup && !reset; $('#invite-label').hidden = true;
-  $('#auth-submit').textContent = ({login:'Sign in',signup:'Create account','request-reset':'Send reset link',resend:'Send verification link',reset:'Save password',verify:'Verify email'})[next];
+  $('#auth-submit').textContent = ({'verify-otp':'Verify code',login:'Continue',signup:'Create account','request-reset':'Send reset link',resend:'Send verification code',reset:'Save password',verify:'Verify email'})[next];
   $('#auth-submit').hidden = false;
-  $('#auth-switch').hidden = signup;
+  $('#auth-switch').hidden = signup || code;
   $('#auth-switch').textContent = login ? 'Create an account' : 'Return to sign in';
   $('#invite-label').open=false;
-  $('#forgot').hidden = !login; $('#resend').hidden = !login;
+  $('#forgot').hidden = !login; $('#resend').hidden = !login && !code;
+  $('#resend').textContent=code?'Send a new code':'Resend verification';
   message($('#auth-message'),'');
   openDialog('#auth-dialog');
 }
 $('#auth-switch').addEventListener('click', () => showAuth(authMode === 'login' ? 'signup' : 'login'));
 $('#forgot').addEventListener('click', () => showAuth('request-reset'));
-$('#resend').addEventListener('click', () => showAuth('resend'));
+$('#resend').addEventListener('click', async () => {
+  if(authMode!=='verify-otp') return showAuth('resend');
+  const button=$('#resend'); button.disabled=true;
+  try { const data=await api('resend-otp',{challenge:otpChallenge}); otpChallenge=data.challenge; $('#auth-code').value=''; $('#auth-code').removeAttribute('aria-invalid'); message($('#auth-message'),data.message,true); }
+  catch(error) {message($('#auth-message'),error.message);}
+  finally {button.disabled=false;}
+});
+$('#auth-form').addEventListener('invalid',e=>e.target.setAttribute('aria-invalid','true'),true);
+$('#auth-form').addEventListener('input',e=>e.target.removeAttribute('aria-invalid'));
 $('#auth-form').addEventListener('submit', async e => {
   e.preventDefault(); const submit = $('#auth-submit'); submit.disabled = true; message($('#auth-message'),'Working…');
   try {
-    const payload = { email:$('#auth-email').value.trim(), login:$('#auth-email').value.trim(), username:$('#auth-username').value.trim(), password:$('#auth-password').value, invite:$('#auth-invite').value, ticket:linkTicket };
+    const payload = { email:$('#auth-email').value.trim(), login:$('#auth-email').value.trim(), username:$('#auth-username').value.trim(), password:$('#auth-password').value, invite:$('#auth-invite').value, ticket:linkTicket, challenge:otpChallenge, code:$('#auth-code').value.trim() };
     const data = await api(authMode, payload);
     $('#auth-password').value = '';
-    if (authMode === 'login') {
+    if(data.requiresCode && data.challenge) {
+      showAuth('verify-otp'); otpChallenge=data.challenge; $('#auth-code').focus(); message($('#auth-message'),data.message,true);
+    } else if ((authMode === 'login' || authMode==='verify-otp') && data.token && data.user) {
       session = data.token; me = data.user; sessionStorage.setItem('turboshot-session',session); seenThisVisit.clear(); updateAccount();
       $('#auth-dialog').close(); toast(`Welcome, @${me.username}.`); await loadFeed();
     } else {
@@ -138,11 +153,14 @@ $('#auth-form').addEventListener('submit', async e => {
     }
   } catch (err) {
     message($('#auth-message'),err.message);
+    const fields={email:'#auth-email',password:'#auth-password',username:'#auth-username',code:'#auth-code',invite:'#auth-invite'};
+    for(const field of err.fields || []) if(fields[field]) $(fields[field]).setAttribute('aria-invalid','true');
+    $('#auth-form [aria-invalid=true]')?.focus();
     if(authMode==='signup' && /invitation code/i.test(err.message)) {$('#invite-label').hidden=false;$('#invite-label').open=true;$('#auth-invite').focus();}
   }
   finally { submit.disabled = false; }
 });
-$('#auth-dialog').addEventListener('close', () => { $('#auth-password').value = ''; $('#auth-submit').hidden = false; });
+$('#auth-dialog').addEventListener('close', () => { otpChallenge=''; $('#auth-code').value=''; $('#auth-password').value = ''; $('#auth-submit').hidden = false; });
 for (const id of ['login','right-login']) $(`#${id}`).addEventListener('click', () => showAuth('login'));
 for (const id of ['signup','right-join','hero-join']) $(`#${id}`).addEventListener('click', () => me ? compose() : showAuth('signup'));
 function compose(kind = 'post') {
@@ -418,7 +436,7 @@ $('#password-form').addEventListener('submit',async e => {
   await perform('change-password',{currentPassword:$('#current-password').value,password:$('#new-password').value},null,async () => { $('#password-form').reset(); clearSession(); $('#settings-dialog').close(); await chooseMode('latest'); }); submit.disabled = false;
 });
 $('#delete-account').addEventListener('click',async () => {
-  if (!confirm('Permanently delete your account and active posts? Encrypted repository history may still contain old data until the administrator clears backups.')) return;
+  if (!confirm('Permanently delete your account and active posts? Provider backups and old repository history may retain older data until their retention or cleanup period ends.')) return;
   const currentPassword = $('#current-password').value;
   if (!currentPassword) { toast('Enter your current password in the field above to confirm deletion.'); $('#current-password').focus(); return; }
   await perform('delete-account',{currentPassword},null,async () => { clearSession(); $('#settings-dialog').close(); await chooseMode('latest'); });
@@ -448,5 +466,6 @@ async function init() {
   updateAccount(); await loadFeed();
 }
 init();
+
 
 

@@ -1,11 +1,7 @@
-# TurboShot
+# TurboShot — Find your spark
 
-TurboShot is a community beta with posts, comments, reactions, Trending and personalized video Zaps.
+GitHub Pages frontend for TurboShot. Begin with [START-HERE.md](START-HERE.md), then use the full Supabase guide in the private TurboShot-Backend repository.
 
-This repository contains the GitHub Pages frontend. The server belongs in the separate private TurboShot-Backend repository.
+Features include text posts, Trending, real uploaded Zaps, comments and reactions, account controls, moderation and a recommendation feed. Account creation/password sign-in require a server-verified email code. Incorrect fields show a red border. The frontend contains only the public API address; all backend credentials stay on Vercel.
 
-- [Launch guide](START-HERE.md)
-- [Video uploads and recommendations](VIDEO-AND-ALGORITHM.md)
-- [Validation](VALIDATION.md)
-
-Connect the Vercel API in config.js after deploying the private backend. Never place a GitHub token, vault key or storage server key in this repository.
+Run frontend checks: `node --test tests/*.test.cjs`.

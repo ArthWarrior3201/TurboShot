@@ -1,17 +1,13 @@
-# TurboShot v1.1: video uploads + personalized Zaps
+# TurboShot Zaps: video uploads and personalized recommendations
 
-Upload both updated folders to their respective repositories. Keep your original `config.js` API address, server secrets, encrypted `data/vault.json` and especially `VAULT_KEY`. Existing accounts/posts are supported; optional upload/recommendation fields are added lazily. Never overwrite your deployed vault with an empty one.
+For database, email and environment setup, follow START-HERE.md and the private backend SUPABASE-SETUP.md. Version 1.2 stores encrypted accounts, content metadata and preferences in Supabase Postgres; actual video bytes live in Supabase Storage. GitHub Pages serves the frontend and Vercel runs the API. Preserve an existing VAULT_KEY and follow the migration guide before switching stores if old GitHub vault data exists.
 
-## Video storage setup
+## Video storage and publishing
 
-Zaps now accept files from the device and play inside the website. File bytes go directly to Supabase Storage; Vercel authorizes the upload, validates the stored object, and publishes it. The encrypted private repository continues to hold accounts, post metadata and preferences. It does not hold video bytes.
-
-1. With a parent, create a Supabase project on an eligible free plan. Copy its project URL and **legacy `service_role` JWT** from API settings. This is a server key, not the public anon key.
-2. In Vercel set `SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co`, `SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVER_KEY`, and `SUPABASE_VIDEO_BUCKET=turboshot-videos`. Never put the server key into `config.js`, a public repo, or chat.
-3. Create the `turboshot-videos` bucket in Storage. Set **public playback**, **maximum file size 26,214,400 bytes (25 MiB)**, and only `video/mp4` and `video/webm` as allowed MIME types. Leave anonymous INSERT/UPDATE/DELETE policies disabled. Public playback does not grant public writes.
-4. Alternatively, create a private local `.env` with the three Supabase variables and run `node --env-file=.env setup-video-storage.mjs` in the backend folder. It creates or updates only that designated bucket and its restrictions. Run this once on your own machine; never commit `.env` or execute it on every request.
-5. Redeploy Vercel and publish the updated frontend. A configured upload service is reported separately from account/email readiness. The API refuses upload signing if provider size/type restrictions are missing.
-6. Sign in → Create a post → Zap. Select an MP4/WebM file, check the preview, choose a category and optional comma-separated tags, enter a caption, and Launch it. The progress bar tracks the file transfer, followed by server verification and publication.
+1. Apply the backend SQL migration to your Supabase project. It creates the app table/function and configures the video bucket.
+2. Configure SUPABASE_URL, the server-only SUPABASE_SECRET_KEY and SUPABASE_VIDEO_BUCKET=turboshot-videos in Vercel, then redeploy. Never place the secret key in config.js or a public repository.
+3. The bucket uses public playback, a 26214400-byte limit and MIME types video/mp4 and video/webm. Leave anonymous write policies disabled. The API checks these restrictions before issuing a signed upload URL.
+4. Sign in with password and email code, then Create post > Zap. Select a video, category, optional tags and caption. Upload progress is followed by server validation and publishing. This uploads actual bytes, not video links.
 
 Accepted files are up to **25 MiB and 90 seconds**. H.264 MP4 usually offers broad compatibility; HEVC and unusual codecs may not play everywhere. Original filenames stay in the local preview and are not stored by the API. The browser checks duration; the API checks exact object size, MIME, ownership, expiry and an MP4/WebM container signature. It does not fully parse media duration/codecs, scan for malware or transcode files. Corrupt/unsupported files can still fail to play and should be reported.
 
@@ -57,3 +53,4 @@ Automated tests mock provider services. Live storage credentials, bucket permiss
 - https://supabase.com/docs/reference/javascript/file-buckets-createsigneduploadurl
 - https://supabase.com/docs/reference/javascript/file-buckets-uploadtosignedurl
 - https://supabase.com/docs/guides/storage/uploads/file-limits
+
