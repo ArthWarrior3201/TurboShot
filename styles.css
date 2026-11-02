@@ -29,3 +29,13 @@ input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="tr
 :root[data-theme="violet"] .primary{background:linear-gradient(110deg,#a855f7,#e550a8)}
 :root[data-theme="violet"] .nav.active{background:#31203c;color:#e2baff}
 :root[data-theme="violet"] h1 span{background-image:linear-gradient(100deg,#e5a0ff,#f19dd1)}
+
+/* Keep the round transparent TurboShot mark fully visible at every size. */
+.brand{overflow:visible}
+.brand img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;mix-blend-mode:normal}
+.hero-logo{width:min(44%,320px);height:auto;aspect-ratio:1/1;object-fit:contain;object-position:center;right:3%;top:50%;transform:translateY(-50%);mix-blend-mode:normal}
+@media(max-width:680px){
+  .brand{width:48px;height:48px;margin-bottom:24px;overflow:visible}
+  .brand img{width:100%;height:100%;max-width:100%;object-fit:contain;position:static;left:auto}
+  .hero-logo{width:min(42%,190px);height:auto;right:2%;top:48%;transform:translateY(-50%);opacity:.82}
+}
