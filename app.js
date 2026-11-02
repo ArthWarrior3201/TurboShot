@@ -121,8 +121,8 @@ function showAuth(next = 'login') {
   $('#auth-switch').hidden = signup || code;
   $('#auth-switch').textContent = login ? 'Create an account' : 'Return to sign in';
   $('#invite-label').open=false;
-  $('#forgot').hidden = !login; $('#resend').hidden = !login && !code;
-  $('#resend').textContent=code?'Send a new code':'Resend verification';
+  $('#forgot').hidden = !login; $('#resend').hidden = !code;
+  $('#resend').textContent='Resend verification code';
   message($('#auth-message'),'');
   openDialog('#auth-dialog');
 }
@@ -137,7 +137,7 @@ $('#password-toggle').addEventListener('click',()=>{
 $('#auth-switch').addEventListener('click', () => showAuth(authMode === 'login' ? 'signup' : 'login'));
 $('#forgot').addEventListener('click', () => showAuth('request-reset'));
 $('#resend').addEventListener('click', async () => {
-  if(authMode!=='verify-otp') return showAuth('resend');
+  if(authMode!=='verify-otp' || !otpChallenge) return;
   const button=$('#resend'); button.disabled=true;
   try { const data=await api('resend-otp',{challenge:otpChallenge}); otpChallenge=data.challenge; $('#auth-code').value=''; $('#auth-code').removeAttribute('aria-invalid'); message($('#auth-message'),data.message,true); }
   catch(error) {message($('#auth-message'),error.message);}

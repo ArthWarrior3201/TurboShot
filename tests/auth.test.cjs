@@ -46,3 +46,11 @@ test('password visibility toggles twice and resets on mode changes, submit and c
  toggle.events.click();h.show('login');assert.equal(input.type,'password');assert.equal(toggle.textContent,'Show');
  toggle.events.click();h.node('auth-dialog').close();assert.equal(input.type,'password');assert.equal(input.value,'');
 });
+
+test('resend appears only on the verification-code screen',async()=>{
+ const h=harness();h.show('login');assert.equal(h.node('resend').hidden,true);h.show('signup');assert.equal(h.node('resend').hidden,true);
+ h.answers.push({requiresCode:true,challenge:'signup-challenge',message:'Code sent'});await h.submit();
+ assert.equal(h.state().authMode,'verify-otp');assert.equal(h.node('resend').hidden,false);assert.equal(h.node('resend').textContent,'Resend verification code');
+ h.answers.push({requiresCode:true,challenge:'replacement',message:'New code sent'});await h.resend();assert.equal(h.calls[1].action,'resend-otp');assert.equal(h.calls[1].input.challenge,'signup-challenge');
+ h.show('login');assert.equal(h.node('resend').hidden,true);
+});
