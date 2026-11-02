@@ -1,0 +1,3 @@
+The language-name catalog is derived from the iso-codes project: https://salsa.debian.org/iso-codes-team/iso-codes (ISO 639-3 data, via https://github.com/sailfishos-mirror/iso-codes). The project distributes data under LGPL-2.1-or-later; the license is included in ISO-CODES-LICENSE.txt. The app selects living languages and prefers two-letter codes where available.
+
+The catalog lists names; it does not imply that a browser supports translating every entry. Translation and detection use the browser APIs. Source text is left unchanged when detection confidence is low, translation or detection is unavailable, or the source and target language match. Account identifiers and stored user content are never changed. Browser support and available language pairs vary.
