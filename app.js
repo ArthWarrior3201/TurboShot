@@ -30,7 +30,10 @@ async function api(action, input = {}, method = 'POST') {
   try { result = await response.json(); } catch { throw new Error('The service is not responding correctly. Please try again shortly.'); }
   if (!response.ok) {
     if (response.status === 401 && session && action !== 'login') clearSession();
-    const error=new Error(response.status===403 && /origin/i.test(result.error || '')?'The service is waiting for its website access setting to be updated.':result.error || 'Something went wrong. Please try again.'); error.status=response.status; throw error;
+    const detail=result.error || 'Something went wrong. Please try again.';
+    const configurationIssue=(response.status===403 && /origin/i.test(detail)) || (response.status===503 && /not configured|configure .*first|vault key|repository connection|origin setting/i.test(detail));
+    const error=new Error(configurationIssue?'TurboShot is being set up. Please try again shortly.':detail);
+    error.status=response.status; error.configurationIssue=configurationIssue; throw error;
   }
   return result;
 }
@@ -227,7 +230,7 @@ async function loadFeed(append = false) {
     observeViews();
   } catch (err) {
     if (request !== feedRequest) return;
-    if (!append) {const state=emptyFeed('The feed is unavailable',err.message,false);state.append(button('Try again','ghost',()=>loadFeed()));$('#feed').replaceChildren(state);} else toast(err.message);
+    if (!append) {const state=emptyFeed(err.configurationIssue?'TurboShot is getting ready':'The feed is unavailable',err.message,false);state.append(button('Try again','ghost',()=>loadFeed()));$('#feed').replaceChildren(state);} else toast(err.message);
   } finally { if (request === feedRequest) $('#feed').setAttribute('aria-busy','false'); }
 }
 function ago(time) {
