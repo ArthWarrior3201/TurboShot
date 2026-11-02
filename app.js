@@ -15,7 +15,7 @@ let me = null, mode = 'latest', cursor = null, authMode = 'login', linkTicket = 
 let toastTimer, viewObserver, otpChallenge='', circleId='', circleName='', circleCache=[], postOperation=0, profileRefreshing=false;
 let selectedVideo=null,pendingUpload=null,uploadXHR=null,previewURL='',videoSelection=0;
 const playbacks=new Set(),loadedPostIds=new Set();
-const seenThisVisit = new Set();
+const seenThisVisit = new Set(), liveProfiles=new Map();
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 6500); }
 function message(target, value, success = false) { target.textContent = value; target.classList.toggle('success', success); }
 async function api(action, input = {}, method = 'POST') {
@@ -474,6 +474,7 @@ $('#moderation').addEventListener('click',async () => {
   } catch (err) { $('#reports-list').replaceChildren(el('p','fine',err.message)); }
 });
 function paintAvatar(node,user) {
+  user=liveProfiles.get(user?.id) || user;
   const letter=Array.from((user?.username || 'T').trim())[0]?.toUpperCase() || 'T';
   let src=''; try {const url=new URL(user?.avatar);if(url.protocol==='https:')src=url.href;} catch {}
   node.dataset.userId=user?.id || '';node.dataset.username=user?.username || '';
@@ -482,7 +483,7 @@ function paintAvatar(node,user) {
   if(src) {const image=el('img');image.alt=`${user.username}'s profile picture`;image.src=src;image.decoding='async';image.addEventListener('error',()=>{node.textContent=letter;node.dataset.avatar='';});node.replaceChildren(image);}
 }
 function applyProfiles(profiles) {
-  const byId=new Map(profiles.map(p=>[p.id,p]));
+  const byId=new Map(profiles.map(p=>[p.id,p]));for(const profile of profiles)liveProfiles.set(profile.id,profile);
   document.querySelectorAll('.avatar[data-user-id]').forEach(node=>{const user=byId.get(node.dataset.userId);if(user)paintAvatar(node,user);});
   if(me && byId.has(me.id)) {me={...me,...byId.get(me.id)};updateAccount();}
 }
