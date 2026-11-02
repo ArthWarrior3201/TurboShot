@@ -19,18 +19,18 @@ const seenThisVisit = new Set();
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 6500); }
 function message(target, value, success = false) { target.textContent = value; target.classList.toggle('success', success); }
 async function api(action, input = {}, method = 'POST') {
-  if (!apiBase) throw new Error('The backend is not connected yet. Follow START-HERE.md and set API_BASE in config.js.');
+  if (!apiBase) throw new Error('The service address has not been configured yet.');
   const url = new URL(apiBase), options = { method, headers: {}, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(25000) };
   if (session) options.headers.Authorization = `Bearer ${session}`;
   if (method === 'GET') { for (const [k,v] of Object.entries({action,...input})) url.searchParams.set(k,String(v)); }
   else { options.headers['Content-Type'] = 'application/json'; options.body = JSON.stringify({action,...input}); }
   let response;
-  try { response = await fetch(url,options); } catch { throw new Error('Could not reach TurboShot. Check your connection and the backend address.'); }
+  try { response = await fetch(url,options); } catch { throw new Error('Unable to connect. Check your internet connection and try again.'); }
   let result;
-  try { result = await response.json(); } catch { throw new Error('The backend returned an unexpected response. Check your Vercel deployment.'); }
+  try { result = await response.json(); } catch { throw new Error('The service is not responding correctly. Please try again shortly.'); }
   if (!response.ok) {
     if (response.status === 401 && session && action !== 'login') clearSession();
-    throw new Error(result.error || 'Something went wrong. Please try again.');
+    const error=new Error(response.status===403 && /origin/i.test(result.error || '')?'The service is waiting for its website access setting to be updated.':result.error || 'Something went wrong. Please try again.'); error.status=response.status; throw error;
   }
   return result;
 }
@@ -87,8 +87,8 @@ function updateAccount() {
   $('#account').textContent = me?.username.slice(0,2).toUpperCase() || '';
   $('#composer-avatar').textContent = me?.username.slice(0,2).toUpperCase() || 'T';
   $('#account').title = me ? `@${me.username}` : 'Account';
-  $('#right-join').textContent = me ? 'Share a fresh thought ↗' : 'Create your account ↗';
-  $('#hero-join').textContent = me ? 'Share your spark ↗' : 'Find your spark ↗';
+  $('#right-join').textContent = me ? 'Create post' : 'Create account';
+  $('#hero-join').textContent = me ? 'Create post' : 'Join TurboShot';
   $('#right-login').parentElement.hidden=!!me;
 }
 function needAccount() { if (me) return true; showAuth('login'); return false; }
@@ -97,8 +97,8 @@ function showAuth(next = 'login') {
   const signup = next === 'signup', login = next === 'login', reset = next === 'reset', verify = next === 'verify';
   const request = next === 'request-reset' || next === 'resend';
   $('#auth-form').reset();
-  $('#auth-title').textContent = ({ login:'Welcome back.',signup:'Find your orbit.', 'request-reset':'Let’s get you back in.',resend:'Check your inbox.',reset:'A fresh start.',verify:'One last step.' })[next];
-  $('#auth-description').textContent = ({ login:'Sign in to share, react and join the conversation.', signup:'Choose a nickname and verify your email to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send another email verification link.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
+  $('#auth-title').textContent = ({ login:'Welcome back',signup:'Create your account', 'request-reset':'Reset your password',resend:'Verify your email',reset:'Choose a new password',verify:'Verify your email' })[next];
+  $('#auth-description').textContent = ({ login:'Sign in to your TurboShot account.', signup:'Enter your details to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send another email verification link.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
   $('#username-label').hidden = !signup; $('#auth-username').required = signup;
   $('#email-label').hidden = reset || verify; $('#auth-email').required = !reset && !verify;
   $('#email-label').firstChild.textContent = login ? 'Email or username' : 'Email address';
@@ -108,9 +108,11 @@ function showAuth(next = 'login') {
   $('#auth-password').minLength = signup || reset ? 12 : 1;
   $('#auth-password').autocomplete = signup || reset ? 'new-password' : 'current-password';
   $('#password-help').hidden = !signup && !reset; $('#invite-label').hidden = !signup;
-  $('#auth-submit').textContent = ({login:'Sign in ↗',signup:'Create account ↗','request-reset':'Send reset link ↗',resend:'Send verification link ↗',reset:'Save new password ↗',verify:'Verify my email ↗'})[next];
+  $('#auth-submit').textContent = ({login:'Sign in',signup:'Create account','request-reset':'Send reset link',resend:'Send verification link',reset:'Save password',verify:'Verify email'})[next];
   $('#auth-submit').hidden = false;
-  $('#auth-switch').textContent = login ? 'New here? Sign up' : 'Back to sign in';
+  $('#auth-switch').hidden = signup;
+  $('#auth-switch').textContent = login ? 'Create an account' : 'Return to sign in';
+  $('#invite-label').open=false;
   $('#forgot').hidden = !login; $('#resend').hidden = !login;
   message($('#auth-message'),'');
   openDialog('#auth-dialog');
@@ -126,7 +128,7 @@ $('#auth-form').addEventListener('submit', async e => {
     $('#auth-password').value = '';
     if (authMode === 'login') {
       session = data.token; me = data.user; sessionStorage.setItem('turboshot-session',session); seenThisVisit.clear(); updateAccount();
-      $('#auth-dialog').close(); toast(`Welcome aboard, @${me.username}.`); await loadFeed();
+      $('#auth-dialog').close(); toast(`Welcome, @${me.username}.`); await loadFeed();
     } else {
       message($('#auth-message'),data.message,true);
       if (authMode === 'verify' || authMode === 'reset') { linkTicket = ''; submit.hidden = true; }
@@ -172,21 +174,21 @@ $('#post-form').addEventListener('submit', async e => {
     const tags=$('#post-tags').value.split(',').map(x=>x.trim().toLowerCase().replace(/^#/, '')).filter(Boolean);
     await api('post',{kind,text:$('#post-text').value,media:kind==='zap'?'':$('#post-media').value.trim(),uploadId,category:kind==='zap'?$('#post-category').value:'other',tags:kind==='zap'?tags:[]});
     pendingUpload=null;
-    $('#post-dialog').close(); toast('Your spark is out there.'); await chooseMode(kind === 'zap' ? 'zaps' : 'latest');
+    $('#post-dialog').close(); toast('Your post has been published.'); await chooseMode(kind === 'zap' ? 'zaps' : 'latest');
   } catch (err) { message($('#post-message'),err.message); if(pendingUpload && !pendingUpload.uploaded) await cancelUpload(); }
   finally { submit.disabled = false; $('#post-video').disabled=false; $('#post-kind').disabled=false; }
 });
 const modeText = {
-  latest:['THE CONVERSATION STARTS HERE','Your feed','The newest posts from the community.'],
-  trending:['GOOD THINGS TAKE OFF','On the rise','The last 7 days, ranked by likes, views, comments and freshness.'],
-  zaps:['MADE FOR YOUR ORBIT','Zaps · For you','Popular creators first. Your watches help shape what comes next.'],
-  mine:['YOUR OWN LITTLE CONSTELLATION','Your posts','Everything you’ve shared, all in one orbit.']
+  latest:['','Your feed','The latest from your community.'],
+  trending:['','Trending','The last 7 days, ranked by likes, views, comments and freshness.'],
+  zaps:['','Zaps for you','Popular creators first. Your watches help shape what comes next.'],
+  mine:['','Your posts','Everything you have shared.']
 };
 async function chooseMode(next) {
   if (next === 'mine' && !needAccount()) return;
   mode = next;
   document.querySelectorAll('[data-mode]').forEach(b => { b.classList.toggle('active',b.dataset.mode === mode); b.classList.toggle('selected',b.dataset.mode === mode); b.setAttribute('aria-pressed',String(b.dataset.mode === mode)); });
-  const copy = modeText[mode]; $('#feed-kicker').textContent = copy[0]; $('#feed-title').replaceChildren(document.createTextNode(copy[1]),el('span','pink-dot','.')); $('#feed-note').textContent = copy[2];
+  const copy = modeText[mode]; $('#feed-kicker').textContent = copy[0]; $('#feed-title').textContent=copy[1]; $('#feed-note').textContent = copy[2];
   $('#hero').hidden = mode !== 'latest'; await loadFeed();
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => chooseMode(b.dataset.mode)));
@@ -196,18 +198,18 @@ document.addEventListener('keydown',e => { if (e.key === '/' && !document.queryS
 $('#refresh').addEventListener('click', () => loadFeed());
 $('#load-more').addEventListener('click', () => loadFeed(true));
 function emptyFeed(title, text, cta = true) {
-  const box = el('div','empty'); box.append(el('div','empty-icon','✦'),el('h3','',title),el('p','',text));
-  if (cta) box.append(button('Start something good ↗','primary',() => me ? compose(mode === 'zaps' ? 'zap' : 'post') : showAuth('signup')));
+  const box = el('div','empty'); box.append(el('div','empty-icon','＋'),el('h3','',title),el('p','',text));
+  if (cta) box.append(button('Create a post','primary',() => me ? compose(mode === 'zaps' ? 'zap' : 'post') : showAuth('signup')));
   return box;
 }
 async function loadFeed(append = false) {
   await finishPlaybacks();
   const request = ++feedRequest; $('#load-more').hidden = true;
-  if (!append) { loadedPostIds.clear(); cursor = null; viewObserver?.disconnect(); $('#feed').replaceChildren(el('div','loading','Finding fresh sparks…')); }
+  if (!append) { loadedPostIds.clear(); cursor = null; viewObserver?.disconnect(); $('#feed').replaceChildren(el('div','loading','Loading posts…')); }
   $('#feed').setAttribute('aria-busy','true');
   if (!apiBase) {
     $('#setup').hidden = false;
-    $('#feed').replaceChildren(emptyFeed('Every orbit starts with a spark.','Your community’s real posts will appear here once the backend is connected.',false));
+    $('#feed').replaceChildren(emptyFeed('Your community is getting ready.','Posts will appear when the service is ready.',false));
     $('#feed').setAttribute('aria-busy','false'); return;
   }
   try {
@@ -216,13 +218,13 @@ async function loadFeed(append = false) {
     $('#setup').hidden = true;
     if (!append) $('#feed').replaceChildren();
     for (const p of data.posts) if(!loadedPostIds.has(p.id)) { loadedPostIds.add(p.id); $('#feed').append(renderPost(p)); }
-    if(mode==='zaps' && data.recommendation) $('#feed-note').textContent=data.recommendation.phase==='personalized'?'For you · shaped by your watches, categories and creators.':data.recommendation.phase==='popular'?'Popular creators · personalization is turned off.':`Popular creators to start · ${Math.min(3,data.recommendation.samples)}/3 watches to begin learning your interests.`;
-    if (!$('#feed').children.length) $('#feed').append(emptyFeed(searchTerm ? 'No sparks found.' : mode === 'zaps' ? 'The first Zap could be yours.' : 'A fresh start. A wide-open orbit.', searchTerm ? 'Try another word or creator name.' : 'Share something you love and start the conversation.'));
+    if(mode==='zaps' && data.recommendation) $('#feed-note').textContent=data.recommendation.phase==='personalized'?'Recommended based on your interests.':data.recommendation.phase==='popular'?'Popular creators. Personalization is off.':'Discover popular creators while your feed learns your interests.';
+    if (!$('#feed').children.length) $('#feed').append(emptyFeed(searchTerm ? 'No results found' : mode === 'zaps' ? 'No Zaps yet' : 'No posts yet', searchTerm ? 'Try another word or creator name.' : 'Share a post to start the conversation.'));
     cursor = data.next; $('#load-more').hidden = cursor === null;
     observeViews();
   } catch (err) {
     if (request !== feedRequest) return;
-    if (!append) $('#feed').replaceChildren(emptyFeed('Still on the launchpad.',err.message,false)); else toast(err.message);
+    if (!append) {const state=emptyFeed('The feed is unavailable',err.message,false);state.append(button('Try again','ghost',()=>loadFeed()));$('#feed').replaceChildren(state);} else toast(err.message);
   } finally { if (request === feedRequest) $('#feed').setAttribute('aria-busy','false'); }
 }
 function ago(time) {
@@ -307,7 +309,7 @@ function renderComments(p,card) {
     container.append(item);
   }
   const form = el('form','comment-form'), input = el('input'); input.placeholder = 'Keep the conversation going…'; input.maxLength = 500; input.required = true; input.setAttribute('aria-label','Write a comment');
-  const submit = el('button','primary','Send ↗'); submit.type = 'submit'; form.append(input,submit);
+  const submit = el('button','primary','Send'); submit.type = 'submit'; form.append(input,submit);
   form.addEventListener('submit',async e => { e.preventDefault(); if (!needAccount()) return; submit.disabled = true; await perform('comment',{id:p.id,text:input.value},card); submit.disabled = false; });
   container.append(form); return container;
 }
@@ -404,7 +406,7 @@ $('#cleanup-media').addEventListener('click',async()=>{
   try {const data=await api('cleanup-media');$('#cleanup-status').textContent=data.cleanupPending?'Cleanup is queued. Check storage access and retry.':`Processed ${data.mediaCleanup?.processed || 0} cleanup job(s); ${data.mediaCleanup?.pending || 0} waiting or queued. Try again to process the next job.`;}
   catch(err){$('#cleanup-status').textContent=err.message;} finally {b.disabled=false;}
 });
-$('#logout').addEventListener('click',async () => { try { await api('logout'); clearSession(); $('#settings-dialog').close(); toast('Signed out. See you around the orbit.'); if (mode === 'mine') await chooseMode('latest'); else await loadFeed(); } catch (err) { toast(err.message); } });
+$('#logout').addEventListener('click',async () => { try { await api('logout'); clearSession(); $('#settings-dialog').close(); toast('You have been signed out.'); if (mode === 'mine') await chooseMode('latest'); else await loadFeed(); } catch (err) { toast(err.message); } });
 $('#password-form').addEventListener('submit',async e => {
   e.preventDefault(); const submit = e.target.querySelector('button'); submit.disabled = true;
   await perform('change-password',{currentPassword:$('#current-password').value,password:$('#new-password').value},null,async () => { $('#password-form').reset(); clearSession(); $('#settings-dialog').close(); await chooseMode('latest'); }); submit.disabled = false;
@@ -433,10 +435,11 @@ async function init() {
   const kind = hash.has('reset') ? 'reset' : hash.has('verify') ? 'verify' : '';
   if (kind) { linkTicket = hash.get(kind); history.replaceState(null,'',location.pathname + location.search); showAuth(kind); }
   if (apiBase) {
-    try { const health = await api('health',{},'GET'); $('#connection').textContent = health.configured ? 'Connected' : 'Setup incomplete'; $('#connection').classList.toggle('online',health.configured); }
+    try { const health = await api('health',{},'GET'); $('#connection').textContent = health.configured ? 'Connected' : 'Setup in progress'; $('#connection').classList.toggle('online',health.configured); }
     catch { $('#connection').textContent = 'Offline'; }
     if (session) { try { me = (await api('me',{},'GET')).user; } catch { clearSession(); } }
   }
   updateAccount(); await loadFeed();
 }
 init();
+

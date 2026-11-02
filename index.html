@@ -4,90 +4,90 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#080910">
-  <meta name="description" content="TurboShot — a little spark. A whole lot to share. Posts, conversations and Zaps.">
+  <meta name="description" content="TurboShot — share ideas, discover creators and watch Zaps.">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:; media-src 'self' blob: https:; connect-src 'self' https: http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
-  <title>TurboShot · Find your spark</title>
+  <title>TurboShot · Your community</title>
   <link rel="icon" href="assets/logo.png">
-  <link rel="stylesheet" href="styles.css">
-  <script src="config.js" defer></script>
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261102-3">
+  <script src="config.js?v=20261102-3" defer></script>
+  <script src="app.js?v=20261102-3" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to feed</a>
 <div class="shell">
   <aside class="sidebar">
     <a class="brand" href="./" aria-label="TurboShot home"><img src="assets/logo.png" alt="TurboShot rocket logo"></a>
-    <div class="eyebrow nav-label">YOUR ORBIT</div>
+    
     <nav aria-label="Main navigation">
-      <button class="nav active" data-mode="latest"><span aria-hidden="true">⌂</span> <span>Home feed</span></button>
-      <button class="nav" data-mode="trending"><span aria-hidden="true">↗</span> <span>Trending</span></button>
-      <button class="nav" data-mode="zaps"><span class="zap-icon" aria-hidden="true">ϟ</span> <span>Zaps</span><small>PLAY</small></button>
-      <button class="nav" data-mode="mine"><span aria-hidden="true">◎</span> <span>My posts</span></button>
+      <button class="nav active" data-mode="latest"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg><span>Home feed</span></button>
+      <button class="nav" data-mode="trending"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 6-6 4 4 8-10M15 5h6v6"/></svg><span>Trending</span></button>
+      <button class="nav" data-mode="zaps"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7Z"/></svg><span>Zaps</span></button>
+      <button class="nav" data-mode="mine"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>My posts</span></button>
     </nav>
-    <button class="primary launch" id="launch">＋ Create a post</button>
+    <button class="primary launch" id="launch"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Create post</button>
     <div class="sidebar-bottom">
-      <button class="subnav" id="settings">⚙ <span>Account settings</span></button>
-      <button class="subnav" id="guidelines">♡ <span>Community guide</span></button>
-      <button class="subnav" id="moderation" hidden>⚑ <span>Moderation</span></button>
-      <div class="sidebar-footer">A little spark. A lot to share.<br><span>TurboShot · Community beta</span></div>
+      <button class="subnav" id="settings"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 3-.7 2.2-2.2.6L4 5l-2 3 1.6 1.6-.1 2.4L2 14l2 3 2.3-.4 2 1.2L9 21h4l.7-2.2 2-1.2 2.3.4 2-3-1.5-2 .1-2.4L20 9l-2-3-2.1.8-2.2-.6L13 3Z"/><circle cx="11" cy="12" r="3"/></svg><span>Settings</span></button>
+      <button class="subnav" id="guidelines"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></svg><span>Community guidelines</span></button>
+      <button class="subnav" id="moderation" hidden><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V3m0 1c5-4 11 4 16 0v11c-5 4-11-4-16 0"/></svg><span>Moderation</span></button>
+      <div class="sidebar-footer"><span>TurboShot</span></div>
     </div>
   </aside>
   <div class="workspace">
     <header class="topbar">
-      <form id="search-form" role="search"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" aria-label="Search posts and creators" placeholder="Search posts & creators" maxlength="100"><kbd>/</kbd></label></form>
-      <div class="top-actions"><span class="connection" id="connection">Setup needed</span><button class="ghost" id="login">Sign in</button><button class="primary" id="signup">Sign up <span aria-hidden="true">↗</span></button><button class="avatar account" id="account" hidden aria-label="Open account"></button></div>
+      <form id="search-form" role="search"><label class="search"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/></svg><input id="search" type="search" aria-label="Search posts and creators" placeholder="Search posts & creators" maxlength="100"><kbd>/</kbd></label></form>
+      <div class="top-actions"><span class="connection" id="connection">Connecting</span><button class="ghost" id="login">Sign in</button><button class="primary" id="signup">Create account</button><button class="avatar account" id="account" hidden aria-label="Open account"></button></div>
     </header>
     <div class="columns">
       <main id="main" tabindex="-1">
         <section class="hero" id="hero">
-          <div class="hero-copy"><div class="eyebrow"><span class="tiny-orbit"></span> WELCOME TO YOUR NEXT LITTLE SPARK</div><h1>Small moments.<br><span>Big energy.</span></h1><p>Your ideas. Your people. Your little corner of the universe.</p><button class="primary" id="hero-join">Find your spark <span aria-hidden="true">↗</span></button></div>
-          <img class="hero-logo" src="assets/logo.png" alt="TurboShot">
-          <div class="hero-foot"><span>POST SOMETHING YOU LOVE</span><span>LET IT TAKE OFF ↗</span></div>
+          <div class="hero-copy"><h1>A place for<br><span>your perspective.</span></h1><p>Share what interests you. Discover people who inspire you.</p><button class="primary" id="hero-join">Join TurboShot</button></div>
+          <div class="hero-art"><img class="hero-logo" src="assets/logo.png" alt="TurboShot rocket"></div>
         </section>
-        <section class="composer-mini" aria-label="Create post"><div class="avatar" id="composer-avatar">T</div><button id="quick-post">Got a spark? Share it with your orbit.</button><button class="mini-zap" id="quick-zap" aria-label="Create a Zap">ϟ</button></section>
-        <div class="feed-heading"><div><div class="eyebrow" id="feed-kicker">THE CONVERSATION STARTS HERE</div><h2 id="feed-title">Your feed<span class="pink-dot">.</span></h2></div><button class="chip" id="refresh" aria-label="Refresh feed">↻ Refresh</button></div>
-        <div class="tabs" role="group" aria-label="Feed filter"><button class="tab selected" data-mode="latest">Fresh takes</button><button class="tab" data-mode="trending">On the rise ↗</button><button class="tab" data-mode="zaps">For you · Zaps ϟ</button></div>
+        <section class="composer-mini" aria-label="Create post"><div class="avatar" id="composer-avatar">T</div><button id="quick-post">What would you like to share?</button><button class="mini-zap" id="quick-zap" aria-label="Create a Zap"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7Z"/></svg></button></section>
+        <div class="feed-heading"><div><div class="eyebrow" id="feed-kicker"></div><h2 id="feed-title">Your feed</h2></div><button class="chip" id="refresh" aria-label="Refresh feed"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/></svg><span>Refresh</span></button></div>
+        <div class="tabs" role="group" aria-label="Feed filter"><button class="tab selected" data-mode="latest">Latest</button><button class="tab" data-mode="trending">Trending</button><button class="tab" data-mode="zaps">Zaps for you</button></div>
         <p class="feed-note" id="feed-note">The newest posts from the community.</p>
-        <div id="setup" class="setup" hidden><strong>Your launchpad is ready.</strong><p>Connect the Vercel API in <code>config.js</code> to bring accounts and posts online. Follow <code>START-HERE.md</code> in the download.</p></div>
+        <div id="setup" class="setup" hidden><strong>Service setup in progress</strong><p>Some features are not available yet. Please try again shortly.</p></div>
         <div id="feed" aria-live="polite" aria-busy="false"></div>
         <button class="ghost load-more" id="load-more" hidden>Load more</button>
       </main>
       <aside class="rightbar" aria-label="Community information">
-        <section class="info-card join-card"><span class="orbit-badge" aria-hidden="true">✦</span><div class="eyebrow">MAKE YOURSELF AT HOME</div><h3>Your orbit<br>starts with you.</h3><p>Share a thought. Find a fresh perspective. Start a conversation.</p><button class="primary wide" id="right-join">Create your account ↗</button><small>Already here? <button class="text-button" id="right-login">Sign in</button></small></section>
-        <section class="info-card"><div class="card-label"><h3>How Trending works</h3><span class="accent">↗</span></div><div class="trend-step"><span>01</span><p>Good posts get a boost<small>Likes, views & conversations.</small></p></div><div class="trend-step"><span>02</span><p>Fresh energy wins<small>Scores fade as posts get older.</small></p></div><div class="trend-step"><span>03</span><p>A new orbit every week<small>Only posts from the last 7 days.</small></p></div></section>
-        <section class="zap-promo"><span class="eyebrow">A QUICK SHOT OF SOMETHING GOOD</span><h3>Meet Zaps<span>ϟ</span></h3><p>Short videos. Full-screen energy.</p><button class="text-button" data-mode="zaps">Step into Zaps ↗</button></section>
-        <p class="right-footer">Be kind. Stay curious. Protect your privacy.<br>Built for a small, moderated community.</p>
+        <section class="info-card join-card"><h3>Join the conversation.</h3><p>A thought, a moment, a new perspective. Make it yours.</p><button class="primary wide" id="right-join">Create account</button><small>Already a member? <button class="text-button" id="right-login">Sign in</button></small></section>
+        <section class="info-card"><div class="card-label"><h3>Discover something new</h3></div><div class="trend-step"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 6-6 4 4 8-10M15 5h6v6"/></svg><p>Trending<small>Popular conversations from the past week.</small></p></div><div class="trend-step"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7Z"/></svg><p>Zaps for you<small>Videos shaped by your interests.</small></p></div><div class="trend-step"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></svg><p>A respectful community<small>Report content that doesn’t belong.</small></p></div></section>
+        <section class="zap-promo"><h3>Short videos.<br>Fresh perspectives.</h3><p>Explore Zaps from creators across the community.</p><button class="text-button" data-mode="zaps">Explore Zaps</button></section>
+        <p class="right-footer">Share thoughtfully. Be respectful.</p>
       </aside>
     </div>
   </div>
 </div>
 <dialog id="auth-dialog" aria-labelledby="auth-title">
-  <button class="close" data-close aria-label="Close dialog">×</button><div class="dialog-brand">Turbo<span>Shot</span> ↗</div>
-  <h2 id="auth-title">Welcome back.</h2><p class="muted" id="auth-description">Your orbit missed you.</p>
+  <button class="close" data-close aria-label="Close dialog">×</button><div class="dialog-brand">Turbo<span>Shot</span></div>
+  <h2 id="auth-title">Welcome back.</h2><p class="muted" id="auth-description">Sign in to your account.</p>
   <form id="auth-form">
     <label id="username-label" hidden>Username<input id="auth-username" autocomplete="username" pattern="[a-zA-Z0-9_]{3,24}" maxlength="24"></label>
     <label id="email-label">Email or username<input id="auth-email" autocomplete="username" maxlength="254" required></label>
-    <label id="password-label">Password<input id="auth-password" type="password" autocomplete="current-password" maxlength="128" required><small id="password-help" hidden>At least 12 characters. A few random words work well.</small></label>
-    <label id="invite-label" hidden>Invitation code <span class="muted">(if provided)</span><input id="auth-invite" maxlength="100" autocomplete="off"></label>
+    <label id="password-label">Password<input id="auth-password" type="password" autocomplete="current-password" maxlength="128" required><small id="password-help" hidden>Minimum 12 characters.</small></label>
+    <details id="invite-label" hidden><summary>Have an invitation code?</summary><label>Invitation code<input id="auth-invite" maxlength="100" autocomplete="off"></label></details>
     <p id="auth-message" class="form-message" role="status"></p>
-    <button class="primary wide" id="auth-submit" type="submit">Sign in ↗</button>
+    <button class="primary wide" id="auth-submit" type="submit">Sign in</button>
   </form>
-  <div class="auth-links"><button class="text-button" id="auth-switch">New here? Sign up</button><button class="text-button" id="forgot">Forgot password?</button><button class="text-button" id="resend">Resend verification</button></div>
-  <p class="fine" id="auth-fine">Use a nickname. Keep personal details out of public posts.</p>
+  <div class="auth-links"><button class="text-button" id="auth-switch">Create an account</button><button class="text-button" id="forgot">Forgot password?</button><button class="text-button" id="resend">Resend verification</button></div>
+  
 </dialog>
-<dialog id="post-dialog" aria-labelledby="post-title"><button class="close" data-close aria-label="Close dialog">×</button><div class="eyebrow">GIVE YOUR IDEA A LITTLE THRUST</div><h2 id="post-title">Ready for takeoff?</h2><form id="post-form"><label>Post type<select id="post-kind"><option value="post">Post · a fresh thought</option><option value="zap">Zap · a short video</option></select></label><label>Your caption<textarea id="post-text" rows="5" maxlength="1200" placeholder="What's lighting up your world?" required></textarea></label><label id="media-label">Image link <span class="muted">(optional)</span><input id="post-media" type="url" maxlength="1000" placeholder="https://approved-host.example/image.jpg"></label><div id="video-upload" hidden>
+<dialog id="post-dialog" aria-labelledby="post-title"><button class="close" data-close aria-label="Close dialog">×</button><h2 id="post-title">Create a post</h2><form id="post-form"><label>Post type<select id="post-kind"><option value="post">Post</option><option value="zap">Zap video</option></select></label><label>Your caption<textarea id="post-text" rows="5" maxlength="1200" placeholder="What would you like to share?" required></textarea></label><label id="media-label">Image link <span class="muted">(optional)</span><input id="post-media" type="url" maxlength="1000" placeholder="https://approved-host.example/image.jpg"></label><div id="video-upload" hidden>
 <label>Video file<input id="post-video" type="file" accept="video/mp4,video/webm,.mp4,.webm"></label>
 <video id="upload-preview" controls playsinline preload="metadata" hidden></video>
 <label>Category<select id="post-category"><option value="gaming">Gaming</option><option value="sports">Sports</option><option value="comedy">Comedy</option><option value="music">Music</option><option value="art">Art</option><option value="science">Science</option><option value="tech">Tech</option><option value="travel">Travel</option><option value="nature">Nature</option><option value="learning">Learning</option><option value="other">Other</option></select></label>
 <label>Tags <span class="muted">(optional, up to 5)</span><input id="post-tags" maxlength="130" placeholder="minecraft, building, creative"></label>
 <progress id="upload-progress" max="100" value="0" hidden aria-label="Video upload progress"></progress>
 <p id="upload-status" class="fine" role="status">Choose an MP4 or WebM, up to 25 MB and 90 seconds.</p>
-</div><p class="fine" id="media-help">Image links must use an administrator-approved host.</p><p class="form-message" id="post-message" role="status"></p><button class="primary wide" type="submit">Launch it ↗</button></form></dialog>
-<dialog id="settings-dialog" aria-labelledby="settings-title"><button class="close" data-close aria-label="Close dialog">×</button><div class="eyebrow">YOUR ACCOUNT</div><h2 id="settings-title">Mission control.</h2><p id="settings-user" class="muted"></p><form id="password-form"><label>Current password<input id="current-password" type="password" autocomplete="current-password" required maxlength="128"></label><label>New password<input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="ghost wide" type="submit">Change password & sign out</button></form><hr><h3>Your Zaps feed</h3><p class="fine" id="recommendation-summary">Start with popular creators. Your watches help shape what comes next.</p><label class="toggle-row"><input type="checkbox" id="personalization-toggle" checked> Personalize using my watches and reactions</label><button class="ghost wide" id="reset-recommendations">Reset my watch preferences</button><hr><h3>Blocked accounts</h3><div id="blocked-list"></div><p class="fine">Blocking hides their posts and comments from your feed.</p><hr><button class="ghost wide" id="logout">Sign out</button><button class="danger wide" id="delete-account">Delete my account</button><p class="fine">Deletion removes active account data and posts. Encrypted backups in repository history require administrator cleanup.</p></dialog>
-<dialog id="info-dialog" aria-labelledby="info-title"><button class="close" data-close aria-label="Close dialog">×</button><div class="eyebrow">OUR LITTLE CORNER OF THE UNIVERSE</div><h2 id="info-title">Good energy only.</h2><p>Be kind. No bullying, threats, hate, sexual content, or sharing someone else's private information.</p><p>Use a nickname. Do not share your address, school, phone number, live location, or passwords. If something feels wrong, report it and tell a trusted adult.</p><p>Only share content you own or have permission to use. External images and videos are loaded only when you choose; their host can see your network address.</p><p>A basic English word filter helps, but it will miss things. Report harmful posts or comments for human review. The administrator can remove posts and ban accounts.</p><p class="fine">Community beta: no direct messages, location sharing, ads, or autoplay. There are no guarantees of availability or perfect moderation. Uploaded videos are public; only share videos you have permission to publish. The Zaps feed uses categories, tags, playback and reactions, with controls to reset or disable personalization.</p></dialog>
-<dialog id="reports-dialog" aria-labelledby="reports-title"><button class="close" data-close aria-label="Close dialog">×</button><div class="eyebrow">ADMINISTRATOR</div><h2 id="reports-title">Community reports.</h2><button class="ghost wide" id="cleanup-media">Clean up unused videos</button><p class="fine" id="cleanup-status" role="status"></p><div id="reports-list"></div></dialog>
+</div><p class="fine" id="media-help">Image links must use an administrator-approved host.</p><p class="form-message" id="post-message" role="status"></p><button class="primary wide" type="submit">Publish</button></form></dialog>
+<dialog id="settings-dialog" aria-labelledby="settings-title"><button class="close" data-close aria-label="Close dialog">×</button><h2 id="settings-title">Account settings</h2><p id="settings-user" class="muted"></p><form id="password-form"><label>Current password<input id="current-password" type="password" autocomplete="current-password" required maxlength="128"></label><label>New password<input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="ghost wide" type="submit">Change password & sign out</button></form><hr><h3>Your Zaps feed</h3><p class="fine" id="recommendation-summary">Start with popular creators. Your watches help shape what comes next.</p><label class="toggle-row"><input type="checkbox" id="personalization-toggle" checked> Personalize using my watches and reactions</label><button class="ghost wide" id="reset-recommendations">Reset my watch preferences</button><hr><h3>Blocked accounts</h3><div id="blocked-list"></div><p class="fine">Blocking hides their posts and comments from your feed.</p><hr><button class="ghost wide" id="logout">Sign out</button><button class="danger wide" id="delete-account">Delete my account</button><p class="fine">Deletion removes active account data and posts. Encrypted backups in repository history require administrator cleanup.</p></dialog>
+<dialog id="info-dialog" aria-labelledby="info-title"><button class="close" data-close aria-label="Close dialog">×</button><h2 id="info-title">Community guidelines</h2><p>Be kind. No bullying, threats, hate, sexual content, or sharing someone else's private information.</p><p>Use a nickname. Do not share your address, school, phone number, live location, or passwords. If something feels wrong, report it and tell a trusted adult.</p><p>Only share content you own or have permission to use. External images and videos are loaded only when you choose; their host can see your network address.</p><p>A basic English word filter helps, but it will miss things. Report harmful posts or comments for human review. The administrator can remove posts and ban accounts.</p><p class="fine">Community beta: no direct messages, location sharing, ads, or autoplay. There are no guarantees of availability or perfect moderation. Uploaded videos are public; only share videos you have permission to publish. The Zaps feed uses categories, tags, playback and reactions, with controls to reset or disable personalization.</p></dialog>
+<dialog id="reports-dialog" aria-labelledby="reports-title"><button class="close" data-close aria-label="Close dialog">×</button><h2 id="reports-title">Community reports</h2><button class="ghost wide" id="cleanup-media">Clean up unused videos</button><p class="fine" id="cleanup-status" role="status"></p><div id="reports-list"></div></dialog>
 <div id="toast" class="toast" role="status" hidden></div>
 <noscript><p>This app needs JavaScript to load the TurboShot feed.</p></noscript>
 </body>
 </html>
+

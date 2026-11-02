@@ -1,4 +1,4 @@
-// Public configuration only. Never put a GitHub token, vault key or email key here.
+// Public API address. Keep all credentials in the backend's Vercel environment.
 window.TURBOSHOT = Object.freeze({
-  API_BASE: '', // Example: https://turboshot-backend.vercel.app/api
+  API_BASE: 'https://turboshot-backend.vercel.app/api',
 });
