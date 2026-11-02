@@ -107,7 +107,7 @@ function showAuth(next = 'login') {
   $('#password-label').hidden = request || verify; $('#auth-password').required = !request && !verify;
   $('#auth-password').minLength = signup || reset ? 12 : 1;
   $('#auth-password').autocomplete = signup || reset ? 'new-password' : 'current-password';
-  $('#password-help').hidden = !signup && !reset; $('#invite-label').hidden = !signup;
+  $('#password-help').hidden = !signup && !reset; $('#invite-label').hidden = true;
   $('#auth-submit').textContent = ({login:'Sign in',signup:'Create account','request-reset':'Send reset link',resend:'Send verification link',reset:'Save password',verify:'Verify email'})[next];
   $('#auth-submit').hidden = false;
   $('#auth-switch').hidden = signup;
@@ -133,7 +133,10 @@ $('#auth-form').addEventListener('submit', async e => {
       message($('#auth-message'),data.message,true);
       if (authMode === 'verify' || authMode === 'reset') { linkTicket = ''; submit.hidden = true; }
     }
-  } catch (err) { message($('#auth-message'),err.message); }
+  } catch (err) {
+    message($('#auth-message'),err.message);
+    if(authMode==='signup' && /invitation code/i.test(err.message)) {$('#invite-label').hidden=false;$('#invite-label').open=true;$('#auth-invite').focus();}
+  }
   finally { submit.disabled = false; }
 });
 $('#auth-dialog').addEventListener('close', () => { $('#auth-password').value = ''; $('#auth-submit').hidden = false; });
