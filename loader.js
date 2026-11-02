@@ -38,6 +38,9 @@
     return !!document.querySelector('dialog[open]') ||
       !!(active && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName)) ||
       !!document.querySelector('button[type="submit"][disabled]') ||
+      !!document.querySelector('input[type="file"][disabled]') ||
+      !!document.querySelector('.comments:not([hidden])') ||
+      !!(window.getSelection && String(window.getSelection()).length) ||
       Array.from(document.querySelectorAll('video')).some(video=>!video.paused && !video.ended);
   }
   function reloadLatest() {
@@ -46,11 +49,10 @@
   }
   function offerUpdate() {
     if(!pendingSignature) return;
-    if(!busy()) {reloadLatest();return;}
     if(notice) return;
     notice=document.createElement('div');notice.className='update-notice';notice.setAttribute('role','status');
-    const text=document.createElement('span');text.textContent='An update is ready. Finish your work, then reload.';
-    const button=document.createElement('button');button.type='button';button.textContent='Update now';button.addEventListener('click',reloadLatest);
+    const text=document.createElement('span');text.textContent='An update is ready. It will load when you switch feeds.';
+    const button=document.createElement('button');button.type='button';button.textContent='Update now';button.addEventListener('click',()=>{if(!busy())reloadLatest();});
     notice.append(text,button);document.body.append(notice);
   }
   async function check() {
@@ -78,10 +80,11 @@
       }
     }
   }
-  window.TurboShotUpdates=Object.freeze({check});
+  window.TurboShotUpdates=Object.freeze({check,safePoint:()=>{if(pendingSignature && !busy())reloadLatest();}});
   window.addEventListener('online',check);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
   setInterval(check,60000);
   setInterval(()=>{if(pendingSignature)offerUpdate();},5000);
   start();
 })();
+

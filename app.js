@@ -12,7 +12,7 @@ let apiBase = '';
 try { const u = new URL(config.API_BASE); if (u.protocol === 'https:' || (u.protocol === 'http:' && u.hostname === 'localhost')) apiBase = u.href.replace(/\/$/, ''); } catch {}
 let session = sessionStorage.getItem('turboshot-session') || '';
 let me = null, mode = 'latest', cursor = null, authMode = 'login', linkTicket = '', searchTerm = '', feedRequest = 0;
-let toastTimer, viewObserver, otpChallenge='';
+let toastTimer, viewObserver, otpChallenge='', circleId='', circleName='', circleCache=[], postOperation=0, profileRefreshing=false;
 let selectedVideo=null,pendingUpload=null,uploadXHR=null,previewURL='',videoSelection=0;
 const playbacks=new Set(),loadedPostIds=new Set();
 const seenThisVisit = new Set();
@@ -79,7 +79,7 @@ function uploadFile(url,selection) {
     $('#upload-progress').hidden=false; xhr.send(selection.file);
   });
 }
-$('#post-dialog').addEventListener('close',()=>{ cancelUpload(); clearVideoSelection(); });
+$('#post-dialog').addEventListener('close',()=>{ postOperation++; cancelUpload(); clearVideoSelection(); });
 function openDialog(id) { document.querySelectorAll('.post video').forEach(v=>v.pause()); const dialog = $(id); if (!dialog.open) dialog.showModal(); }
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); } }));
@@ -87,8 +87,8 @@ function clearSession() { session = ''; me = null; sessionStorage.removeItem('tu
 function updateAccount() {
   $('#login').hidden = !!me; $('#signup').hidden = !!me; $('#account').hidden = !me;
   $('#moderation').hidden = !me?.admin;
-  $('#account').textContent = me?.username.slice(0,2).toUpperCase() || '';
-  $('#composer-avatar').textContent = me?.username.slice(0,2).toUpperCase() || 'T';
+  paintAvatar($('#account'),me);
+  paintAvatar($('#composer-avatar'),me);
   $('#account').title = me ? `@${me.username}` : 'Account';
   $('#right-join').textContent = me ? 'Create post' : 'Create account';
   $('#hero-join').textContent = me ? 'Create post' : 'Find your spark';
@@ -103,6 +103,7 @@ function showAuth(next = 'login') {
   const signup = next === 'signup', login = next === 'login', reset = next === 'reset', verify = next === 'verify';
   const request = next === 'request-reset' || next === 'resend';
   $('#auth-form').reset();
+  $('#auth-password').setCustomValidity(''); hidePassword();
   $('#auth-title').textContent = ({ 'verify-otp':'Check your email',login:'Welcome back',signup:'Create your account', 'request-reset':'Reset your password',resend:'Verify your email',reset:'Choose a new password',verify:'Verify your email' })[next];
   $('#auth-description').textContent = ({ 'verify-otp':'Enter the 6-digit code we sent you. It expires in 10 minutes.',login:'Sign in to your TurboShot account.', signup:'Enter your details to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send a new code to finish creating your account.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
   $('#username-label').hidden = !signup; $('#auth-username').required = signup;
@@ -125,6 +126,14 @@ function showAuth(next = 'login') {
   message($('#auth-message'),'');
   openDialog('#auth-dialog');
 }
+function hidePassword() {
+  $('#auth-password').type='password'; $('#password-toggle').textContent='Show';
+  $('#password-toggle').setAttribute('aria-label','Show password'); $('#password-toggle').setAttribute('aria-pressed','false');
+}
+$('#password-toggle').addEventListener('click',()=>{
+  const show=$('#auth-password').type==='password'; $('#auth-password').type=show?'text':'password';
+  $('#password-toggle').textContent=show?'Hide':'Show'; $('#password-toggle').setAttribute('aria-label',show?'Hide password':'Show password'); $('#password-toggle').setAttribute('aria-pressed',String(show));
+});
 $('#auth-switch').addEventListener('click', () => showAuth(authMode === 'login' ? 'signup' : 'login'));
 $('#forgot').addEventListener('click', () => showAuth('request-reset'));
 $('#resend').addEventListener('click', async () => {
@@ -134,10 +143,10 @@ $('#resend').addEventListener('click', async () => {
   catch(error) {message($('#auth-message'),error.message);}
   finally {button.disabled=false;}
 });
-$('#auth-form').addEventListener('invalid',e=>e.target.setAttribute('aria-invalid','true'),true);
-$('#auth-form').addEventListener('input',e=>e.target.removeAttribute('aria-invalid'));
+$('#auth-form').addEventListener('invalid',e=>{e.target.setAttribute('aria-invalid','true');if(e.target.id==='auth-password' && e.target.validity.tooShort)e.target.setCustomValidity('Use at least 12 characters for your password.');},true);
+$('#auth-form').addEventListener('input',e=>{e.target.removeAttribute('aria-invalid');e.target.setCustomValidity('');});
 $('#auth-form').addEventListener('submit', async e => {
-  e.preventDefault(); const submit = $('#auth-submit'); submit.disabled = true; message($('#auth-message'),'Working…');
+  e.preventDefault(); const submit = $('#auth-submit'); submit.disabled = true; message($('#auth-message'),''); submit.setAttribute('aria-busy','true'); hidePassword();
   try {
     const payload = { email:$('#auth-email').value.trim(), login:$('#auth-email').value.trim(), username:$('#auth-username').value.trim(), password:$('#auth-password').value, invite:$('#auth-invite').value, ticket:linkTicket, challenge:otpChallenge, code:$('#auth-code').value.trim() };
     const data = await api(authMode, payload);
@@ -158,28 +167,28 @@ $('#auth-form').addEventListener('submit', async e => {
     $('#auth-form [aria-invalid=true]')?.focus();
     if(authMode==='signup' && /invitation code/i.test(err.message)) {$('#invite-label').hidden=false;$('#invite-label').open=true;$('#auth-invite').focus();}
   }
-  finally { submit.disabled = false; }
+  finally { submit.disabled = false; submit.removeAttribute('aria-busy'); }
 });
-$('#auth-dialog').addEventListener('close', () => { otpChallenge=''; $('#auth-code').value=''; $('#auth-password').value = ''; $('#auth-submit').hidden = false; });
+$('#auth-dialog').addEventListener('close', () => { otpChallenge=''; $('#auth-code').value=''; $('#auth-password').value = ''; hidePassword(); $('#auth-submit').hidden = false; });
 for (const id of ['login','right-login']) $(`#${id}`).addEventListener('click', () => showAuth('login'));
 for (const id of ['signup','right-join','hero-join']) $(`#${id}`).addEventListener('click', () => me ? compose() : showAuth('signup'));
 function compose(kind = 'post') {
   if (!needAccount()) return;
   cancelUpload(); clearVideoSelection();
-  $('#post-form').reset(); $('#post-kind').value = kind; updateMediaLabel(); message($('#post-message'),''); openDialog('#post-dialog');
+  $('#post-form').reset(); refreshCircleOptions(); $('#post-kind').value = kind; updateMediaLabel(); message($('#post-message'),''); openDialog('#post-dialog');
 }
 function updateMediaLabel() {
   const zap = $('#post-kind').value === 'zap';
   $('#media-label').hidden=zap; $('#media-help').hidden=zap; $('#video-upload').hidden=!zap;
   $('#post-media').required=false; $('#post-video').required=zap;
-  $('#post-media').placeholder='https://approved-host.example/image.jpg';
+
 }
 $('#post-kind').addEventListener('change',updateMediaLabel);
 for (const id of ['launch','quick-post']) $(`#${id}`).addEventListener('click', () => compose());
 $('#quick-zap').addEventListener('click', () => compose('zap'));
 $('#post-form').addEventListener('submit', async e => {
-  e.preventDefault(); const submit = e.target.querySelector('[type=submit]'); submit.disabled = true;
-  const kind=$('#post-kind').value;
+  e.preventDefault(); const submit = e.target.querySelector('[type=submit]'); submit.disabled = true; submit.textContent='Publishing…';
+  const kind=$('#post-kind').value, operation=postOperation; let imageUploadId='';
   try {
     let uploadId='';
     if(kind==='zap') {
@@ -195,12 +204,16 @@ $('#post-form').addEventListener('submit', async e => {
       if(!pendingUpload.uploaded) { await uploadFile(pendingUpload.url,selection); uploadXHR=null; pendingUpload.uploaded=true; }
       uploadId=pendingUpload.id; $('#upload-status').textContent='Video uploaded. Verifying and publishing…';
     }
+    if(kind!=='zap' && $('#post-media').files[0]) {imageUploadId=await uploadImage($('#post-media').files[0],'image');uploadId=imageUploadId;}
+    if(!$('#post-dialog').open || operation!==postOperation) {if(imageUploadId)await api('cancel-upload',{uploadId:imageUploadId});return;}
     const tags=$('#post-tags').value.split(',').map(x=>x.trim().toLowerCase().replace(/^#/, '')).filter(Boolean);
-    await api('post',{kind,text:$('#post-text').value,media:kind==='zap'?'':$('#post-media').value.trim(),uploadId,category:kind==='zap'?$('#post-category').value:'other',tags:kind==='zap'?tags:[]});
+    const published=await api('post',{circleId:$('#post-circle').value,kind,text:$('#post-text').value,media:'',uploadId,category:kind==='zap'?$('#post-category').value:'other',tags:kind==='zap'?tags:[]});
     pendingUpload=null;
-    $('#post-dialog').close(); toast('Your post has been published.'); await chooseMode(kind === 'zap' ? 'zaps' : 'latest');
-  } catch (err) { message($('#post-message'),err.message); if(pendingUpload && !pendingUpload.uploaded) await cancelUpload(); }
-  finally { submit.disabled = false; $('#post-video').disabled=false; $('#post-kind').disabled=false; }
+    $('#post-dialog').close(); toast('Your post has been published.');
+    if(mode==='latest' && !searchTerm && (published.post.circleId || '')===circleId) {$('#feed .empty')?.remove();$('#feed').prepend(renderPost(published.post));loadedPostIds.add(published.post.id);observeViews();}
+    else await chooseMode(kind === 'zap' ? 'zaps' : 'latest');
+  } catch (err) { message($('#post-message'),err.message); if(imageUploadId)try{await api('cancel-upload',{uploadId:imageUploadId});}catch{} if(pendingUpload && !pendingUpload.uploaded) await cancelUpload(); }
+  finally { submit.disabled = false; submit.textContent='Publish'; $('#post-video').disabled=false; $('#post-kind').disabled=false; }
 });
 const modeText = {
   latest:['','Your feed','The latest from your community.'],
@@ -208,12 +221,14 @@ const modeText = {
   zaps:['','Zaps for you','Popular creators first. Your watches help shape what comes next.'],
   mine:['','Your posts','Everything you have shared.']
 };
-async function chooseMode(next) {
+async function chooseMode(next, keepCircle = false) {
+  if(!keepCircle) {circleId='';circleName='';}
+  window.TurboShotUpdates?.safePoint?.();
   if (next === 'mine' && !needAccount()) return;
   mode = next;
   document.querySelectorAll('[data-mode]').forEach(b => { b.classList.toggle('active',b.dataset.mode === mode); b.classList.toggle('selected',b.dataset.mode === mode); b.setAttribute('aria-pressed',String(b.dataset.mode === mode)); });
-  const copy = modeText[mode]; $('#feed-kicker').textContent = copy[0]; $('#feed-title').textContent=copy[1]; $('#feed-note').textContent = copy[2];
-  $('#hero').hidden = mode !== 'latest'; await loadFeed();
+  const copy = modeText[mode]; $('#feed-kicker').textContent = copy[0]; $('#feed-title').textContent=circleName || copy[1]; $('#feed-note').textContent = copy[2];
+  $('#hero').hidden = mode !== 'latest' || !!circleId; await loadFeed();
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => chooseMode(b.dataset.mode)));
 $('#search-form').addEventListener('submit',e => { e.preventDefault(); searchTerm = $('#search').value.trim(); loadFeed(); });
@@ -237,7 +252,7 @@ async function loadFeed(append = false) {
     $('#feed').setAttribute('aria-busy','false'); return;
   }
   try {
-    const data = await api('feed',{mode,search:searchTerm,cursor:append ? cursor : 0},'GET');
+    const data = await api('feed',{mode,circleId,search:searchTerm,cursor:append ? cursor : 0},'GET');
     if (request !== feedRequest) return;
     $('#setup').hidden = true;
     if (!append) $('#feed').replaceChildren();
@@ -278,9 +293,11 @@ function renderPost(p) {
   const card = el('article',`post ${p.kind === 'zap' ? 'zap' : ''}`); card.dataset.id = p.id;
   const head = el('div','post-head'), user = el('div');
   user.append(el('p','post-name',`@${p.username}`),el('span','post-time',ago(p.created)));
-  head.append(el('div','avatar',p.username.slice(0,2).toUpperCase()),user);
+  const avatar=el('div','avatar'); paintAvatar(avatar,{id:p.userId,username:p.username,avatar:p.avatar}); head.append(avatar,user);
   if (p.kind === 'zap') head.append(el('span','post-label','ZAP ϟ'));
   card.append(head,el('p','post-text',p.text));
+  if(p.circleName) card.append(el('p','circle-badge',`◎ ${p.circleName}`));
+  card.append(button('Open post','text-button post-open',()=>{const reader=$('#reader-content');reader.replaceChildren(renderPost(p));reader.querySelector('.post-open')?.remove();openDialog('#reader-dialog');}));
   if(p.kind==='zap') {
     card.dataset.zap='true';
     if(p.recommendationReason) card.append(el('p','zap-reason',p.recommendationReason));
@@ -294,6 +311,8 @@ function renderPost(p) {
       video.setAttribute('aria-label',`Zap by @${p.username}: ${p.text}`);
       video.addEventListener('error',()=>toast('This video could not play. Try again later or report the Zap.'));
       media.append(video); trackPlayback(video,p,card);
+    } else if(url && p.uploaded) {
+      const image=el('img');image.alt=p.text || 'Image shared by this creator';image.loading='lazy';image.decoding='async';image.src=url.href;media.append(image);
     } else if(url) {
       const consent=el('div','media-consent');
       consent.append(el('p','','An image from this creator.'));
@@ -328,7 +347,7 @@ function renderComments(p,card) {
   container.setAttribute('aria-label','Comments');
   if (!p.comments.length) container.append(el('p','fine','Be the first to say something kind.'));
   for (const c of p.comments) {
-    const item = el('div','comment'); item.append(el('strong','',`@${c.username}`),el('p','',c.text));
+    const item = el('div','comment'); const header=el('div','comment-author'),avatar=el('div','avatar');paintAvatar(avatar,{id:c.userId,username:c.username,avatar:c.avatar});header.append(avatar,el('strong','',`@${c.username}`));item.append(header,el('p','',c.text));
     if (me && (c.userId === me.id || me.admin)) item.append(button('Delete','text-button',() => perform('delete-comment',{id:p.id,commentId:c.id},card)));
     container.append(item);
   }
@@ -403,9 +422,9 @@ function observeViews() {
 document.addEventListener('visibilitychange',() => { if (document.hidden) document.querySelectorAll('video').forEach(v => v.pause()); });
 async function openSettings() {
   if (!needAccount()) return;
-  $('#settings-user').textContent = `Signed in as @${me.username}`; $('#password-form').reset(); $('#blocked-list').replaceChildren(el('p','fine','Loading…')); openDialog('#settings-dialog');
+  $('#settings-user').textContent = `Signed in as @${me.username}`; paintAvatar($('#profile-avatar'),me); message($('#profile-message'),''); $('#password-form').reset(); $('#blocked-list').replaceChildren(el('p','fine','Loading…')); openDialog('#settings-dialog');
   try {
-    const data = await api('me',{},'GET'); $('#blocked-list').replaceChildren();
+    const data = await api('me',{},'GET'); me=data.user; updateAccount();paintAvatar($('#profile-avatar'),me); $('#blocked-list').replaceChildren();
     $('#personalization-toggle').checked=data.recommendations?.enabled!==false;
     const watched=data.recommendations?.watched || 0;
     $('#recommendation-summary').textContent=`${watched} video${watched===1?'':'s'} in your recent watch preferences. Reset clears watches and hidden Zaps. Your explicit likes and dislikes remain.`;
@@ -454,18 +473,89 @@ $('#moderation').addEventListener('click',async () => {
     }
   } catch (err) { $('#reports-list').replaceChildren(el('p','fine',err.message)); }
 });
+function paintAvatar(node,user) {
+  const letter=Array.from((user?.username || 'T').trim())[0]?.toUpperCase() || 'T';
+  let src=''; try {const url=new URL(user?.avatar);if(url.protocol==='https:')src=url.href;} catch {}
+  node.dataset.userId=user?.id || '';node.dataset.username=user?.username || '';
+  if(node.dataset.avatar===src && node.dataset.letter===letter) return;
+  node.dataset.avatar=src;node.dataset.letter=letter;node.textContent=letter;
+  if(src) {const image=el('img');image.alt=`${user.username}'s profile picture`;image.src=src;image.decoding='async';image.addEventListener('error',()=>{node.textContent=letter;node.dataset.avatar='';});node.replaceChildren(image);}
+}
+function applyProfiles(profiles) {
+  const byId=new Map(profiles.map(p=>[p.id,p]));
+  document.querySelectorAll('.avatar[data-user-id]').forEach(node=>{const user=byId.get(node.dataset.userId);if(user)paintAvatar(node,user);});
+  if(me && byId.has(me.id)) {me={...me,...byId.get(me.id)};updateAccount();}
+}
+async function refreshProfiles() {
+  if(!apiBase || profileRefreshing || document.hidden || navigator.onLine===false || document.querySelector('#post-dialog[open]') || !document.querySelector('.post'))return;
+  profileRefreshing=true;
+  try {applyProfiles((await api('profiles',{},'GET')).profiles);} catch {} finally {profileRefreshing=false;}
+}
+setInterval(refreshProfiles,15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshProfiles();});
+async function prepareImage(file,purpose) {
+  if(!file || file.size>20*1024*1024 || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Choose a JPG, PNG or WebP image up to 20 MB.');
+  const image=new Image(),url=URL.createObjectURL(file);
+  try {
+    await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('This image could not be opened. Try a JPG, PNG or WebP.'));image.src=url;});
+    if(!image.naturalWidth || image.naturalWidth*image.naturalHeight>40000000)throw new Error('This image is too large. Please choose a smaller one.');
+    const side=purpose==='avatar'?512:1600,scale=Math.min(1,side/Math.max(image.naturalWidth,image.naturalHeight));
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/webp',.84));
+    if(!blob || blob.size>(purpose==='avatar'?1024*1024:3*1024*1024))throw new Error('Please choose a smaller image.');
+    return blob;
+  } finally {URL.revokeObjectURL(url);}
+}
+async function uploadImage(file,purpose) {
+  const blob=await prepareImage(file,purpose);
+  const data=await api('upload-intent',{purpose,type:blob.type,size:blob.size});
+  try {const response=await fetch(data.upload.url,{method:'PUT',headers:{'Content-Type':blob.type},body:blob,credentials:'omit',signal:AbortSignal.timeout(90000)});if(!response.ok)throw new Error('The image could not be uploaded. Please try again.');return data.upload.id;}
+  catch(error) {try {await api('cancel-upload',{uploadId:data.upload.id});}catch {}throw error;}
+}
+$('#avatar-file').addEventListener('change',async()=>{
+  const input=$('#avatar-file'),file=input.files[0];if(!file || !me)return;input.disabled=true;$('#remove-avatar').disabled=true;message($('#profile-message'),'Uploading picture…');let uploadId='';
+  try {uploadId=await uploadImage(file,'avatar');const data=await api('update-avatar',{uploadId});me=data.user;applyProfiles([me]);paintAvatar($('#profile-avatar'),me);message($('#profile-message'),'Profile picture updated.',true);}
+  catch(error) {message($('#profile-message'),error.message);if(uploadId)try{await api('cancel-upload',{uploadId});}catch{}}
+  finally {input.disabled=false;input.value='';$('#remove-avatar').disabled=false;}
+});
+$('#remove-avatar').addEventListener('click',async()=>{
+  const button=$('#remove-avatar');button.disabled=true;
+  try {const data=await api('update-avatar',{remove:true});me=data.user;applyProfiles([me]);paintAvatar($('#profile-avatar'),me);message($('#profile-message'),'Profile picture removed.',true);}catch(error){message($('#profile-message'),error.message);}finally{button.disabled=false;}
+});
+async function refreshCircleOptions() {
+  const initial=$('#post-circle');initial.replaceChildren();const homeChoice=el('option','','Home feed');homeChoice.value='';initial.append(homeChoice);
+  if(circleId){const choice=el('option','',circleName);choice.value=circleId;initial.append(choice);initial.value=circleId;}
+  try {circleCache=(await api('circles',{},'GET')).circles;}catch{}
+  const select=$('#post-circle');select.replaceChildren();const home=el('option','','Home feed');home.value='';select.append(home);
+  for(const circle of circleCache.filter(c=>c.joined)){const option=el('option','',circle.name);option.value=circle.id;select.append(option);}
+  select.value=circleId;
+}
+async function showCircles() {
+  openDialog('#circles-dialog');$('#circles-list').replaceChildren(el('p','','Loading Circles…'));
+  try {circleCache=(await api('circles',{},'GET')).circles;$('#circles-list').replaceChildren();
+    if(!circleCache.length)$('#circles-list').append(el('p','','Be the first to create a Circle.'));
+    for(const circle of circleCache){const row=el('div','circle-item');row.append(el('h3','',circle.name),el('p','',circle.description),el('small','',`${circle.members} member${circle.members===1?'':'s'}`));
+      row.append(button('Open Circle','ghost',()=>{circleId=circle.id;circleName=circle.name;$('#circles-dialog').close();chooseMode('latest',true);}));
+      row.append(button(circle.joined?'Leave':'Join','text-button',async()=>{if(!needAccount())return;try{await api('join-circle',{id:circle.id,leave:circle.joined});await showCircles();}catch(error){toast(error.message);}}));$('#circles-list').append(row);
+    }
+  }catch(error){$('#circles-list').replaceChildren(el('p','',error.message));}
+}
+$('#circles-button').addEventListener('click',()=>{window.TurboShotUpdates?.safePoint?.();showCircles();});
+$('#circle-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(!needAccount())return;const submit=event.target.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Creating…';
+  try {const data=await api('create-circle',{name:$('#circle-name').value,description:$('#circle-description').value});event.target.reset();await showCircles();message($('#circle-message'),`Your Circle, ${data.circle.name}, is ready.`,true);}catch(error){message($('#circle-message'),error.message);}finally{submit.disabled=false;submit.textContent='Create Circle';}
+});
 async function init() {
   const hash = new URLSearchParams(location.hash.slice(1));
   const kind = hash.has('reset') ? 'reset' : hash.has('verify') ? 'verify' : '';
   if (kind) { linkTicket = hash.get(kind); history.replaceState(null,'',location.pathname + location.search); showAuth(kind); }
   if (apiBase) {
-    try { const health = await api('health',{},'GET'); $('#connection').textContent = health.configured ? 'Connected' : 'Setup in progress'; $('#connection').classList.toggle('online',health.configured); }
-    catch { $('#connection').textContent = 'Offline'; }
     if (session) { try { me = (await api('me',{},'GET')).user; } catch { clearSession(); } }
   }
   updateAccount(); await loadFeed();
 }
 init();
+
 
 
 

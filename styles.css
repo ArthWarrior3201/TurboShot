@@ -15,3 +15,7 @@
 /* Server and browser validation use the same visible error state. */
 input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="true"] { border-color:#ff6b81; outline:2px solid #ff6b8140; }
 #auth-code { font-size:1.6rem; letter-spacing:.35em; text-align:center; font-variant-numeric:tabular-nums; }
+
+
+.password-wrap{display:flex;align-items:center;position:relative}.password-wrap input{padding-right:72px}.password-toggle{position:absolute;right:10px;top:7px;height:calc(100% - 7px);padding:0 8px;background:transparent;color:#ff9ec5;font-size:12px;font-weight:650;border-radius:6px}
+.avatar{overflow:hidden}.avatar img{display:block;width:100%;height:100%;object-fit:cover}.profile-avatar{width:72px;height:72px;font-size:28px}.profile-editor{padding:18px 0}.circle-item{border-bottom:1px solid var(--line);padding:15px 0}.circle-item p{margin:5px 0}.circle-item button{margin:6px 10px 0 0}.comment-author{display:flex;align-items:center;gap:8px}.comment-author .avatar{width:24px;height:24px;font-size:10px;border-radius:50%}input[type=file]{max-width:100%;font-size:12px}input[type=file]::file-selector-button{border:0;border-radius:6px;padding:8px 10px;margin-right:10px;background:#352237;color:#f7d7e9;cursor:pointer}.post-open{margin-top:10px;font-size:11px}#reader-dialog{max-width:680px}#reader-dialog .post{margin-top:24px}.circle-badge{font-size:11px;color:#ffb0cd}
