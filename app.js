@@ -91,7 +91,7 @@ function updateAccount() {
   $('#composer-avatar').textContent = me?.username.slice(0,2).toUpperCase() || 'T';
   $('#account').title = me ? `@${me.username}` : 'Account';
   $('#right-join').textContent = me ? 'Create post' : 'Create account';
-  $('#hero-join').textContent = me ? 'Create post' : 'Join TurboShot';
+  $('#hero-join').textContent = me ? 'Create post' : 'Find your spark';
   $('#right-login').parentElement.hidden=!!me;
 }
 function needAccount() { if (me) return true; showAuth('login'); return false; }
@@ -448,4 +448,5 @@ async function init() {
   updateAccount(); await loadFeed();
 }
 init();
+
 

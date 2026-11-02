@@ -1,17 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-shell="spark-v1">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#080910">
-  <meta name="description" content="TurboShot — share ideas, discover creators and watch Zaps.">
+  <meta name="description" content="TurboShot — Find your spark. Share posts, discover creators and watch Zaps.">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:; media-src 'self' blob: https:; connect-src 'self' https: http://localhost:3000; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
-  <title>TurboShot · Your community</title>
+  <title>TurboShot · Find your spark</title>
   <link rel="icon" href="assets/logo.png">
-  <link rel="stylesheet" href="styles.css?v=20261102-3">
-  <script src="config.js?v=20261102-3" defer></script>
-  <script src="app.js?v=20261102-3" defer></script>
+  <link id="app-styles" rel="stylesheet" href="styles.css?v=spark-1">
+  <script src="loader.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to feed</a>
@@ -36,12 +35,12 @@
   <div class="workspace">
     <header class="topbar">
       <form id="search-form" role="search"><label class="search"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/></svg><input id="search" type="search" aria-label="Search posts and creators" placeholder="Search posts & creators" maxlength="100"><kbd>/</kbd></label></form>
-      <div class="top-actions"><span class="connection" id="connection">Connecting</span><button class="ghost" id="login">Sign in</button><button class="primary" id="signup">Create account</button><button class="avatar account" id="account" hidden aria-label="Open account"></button></div>
+      <div class="top-actions"><span class="connection" id="connection" hidden>Connecting</span><button class="ghost" id="login">Sign in</button><button class="primary" id="signup">Create account</button><button class="avatar account" id="account" hidden aria-label="Open account"></button></div>
     </header>
     <div class="columns">
       <main id="main" tabindex="-1">
         <section class="hero" id="hero">
-          <div class="hero-copy"><h1>A place for<br><span>your perspective.</span></h1><p>Share what interests you. Discover people who inspire you.</p><button class="primary" id="hero-join">Join TurboShot</button></div>
+          <div class="hero-copy"><h1>Find your<br><span>spark.</span></h1><p>Your ideas. Your people. Your little corner of the universe.</p><button class="primary" id="hero-join">Find your spark</button></div>
           <div class="hero-art"><img class="hero-logo" src="assets/logo.png" alt="TurboShot rocket"></div>
         </section>
         <section class="composer-mini" aria-label="Create post"><div class="avatar" id="composer-avatar">T</div><button id="quick-post">What would you like to share?</button><button class="mini-zap" id="quick-zap" aria-label="Create a Zap"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7Z"/></svg></button></section>
@@ -90,4 +89,5 @@
 <noscript><p>This app needs JavaScript to load the TurboShot feed.</p></noscript>
 </body>
 </html>
+
 
