@@ -546,6 +546,51 @@ $('#circle-form').addEventListener('submit',async event=>{
   event.preventDefault();if(!needAccount())return;const submit=event.target.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Creating…';
   try {const data=await api('create-circle',{name:$('#circle-name').value,description:$('#circle-description').value});event.target.reset();await showCircles();message($('#circle-message'),`Your Circle, ${data.circle.name}, is ready.`,true);}catch(error){message($('#circle-message'),error.message);}finally{submit.disabled=false;submit.textContent='Create Circle';}
 });
+// Device preferences stay in this browser; they are not attached to an account.
+const deviceOptions={get(key,fallback){try{return localStorage.getItem(key)||fallback;}catch{return fallback;}},set(key,value){try{localStorage.setItem(key,value);}catch{}}};
+const allowedThemes=['turbo','ocean','violet'];
+function setDeviceTheme(value){const theme=allowedThemes.includes(value)?value:'turbo';document.documentElement.dataset.theme=theme;$('#device-theme').value=theme;deviceOptions.set('turboshot-device-theme',theme);}
+$('#device-theme').addEventListener('change',e=>setDeviceTheme(e.target.value));
+setDeviceTheme(deviceOptions.get('turboshot-device-theme','turbo'));
+
+// Browser-provided translation affects interface text only, never post content.
+let deviceTranslator=null,translationRun=0;const translations=new Map();
+const deviceMessage=$('#device-message'),languagePicker=$('#device-language'),otherLanguage=$('#other-language');
+const isListed=language=>[...languagePicker.options].some(o=>o.value===language && language!=='other');
+function showLanguageChoice(language){if(isListed(language)){languagePicker.value=language;otherLanguage.hidden=true;}else{languagePicker.value='other';otherLanguage.hidden=false;$('#other-language-code').value=language;}}
+function excludedFromTranslation(node){return !node.parentElement || !!node.parentElement.closest('script,style,option,.post,.avatar,#feed,#circles-list,#blocked-list,#settings-user,#profile-message,#device-message,#device-language-note,.form-message');}
+function restoreEnglish(){for(const [node,entry] of translations){if(node.isConnected && node.nodeValue===entry.translated)node.nodeValue=entry.original;}translations.clear();}
+async function translateInterface(root,run){
+  if(!deviceTranslator)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];let node;
+  while((node=walker.nextNode())) if(node.nodeValue.trim() && !excludedFromTranslation(node)) nodes.push(node);
+  for(const n of nodes){
+    if(run!==translationRun || !deviceTranslator)return;
+    const old=translations.get(n);if(old && n.nodeValue===old.translated)continue;
+    const original=n.nodeValue;if(!original.trim())continue;
+    try{const translated=await deviceTranslator.translate(original);if(run===translationRun && n.isConnected && n.nodeValue===original){translations.set(n,{original,translated});n.nodeValue=translated;}}catch{}
+  }
+}
+async function setDeviceLanguage(language,{restore=false}={}){
+  const run=++translationRun;deviceTranslator?.destroy?.();deviceTranslator=null;restoreEnglish();document.documentElement.lang='en';
+  if(language==='en'){showLanguageChoice('en');deviceOptions.set('turboshot-device-language','en');message(deviceMessage,'');return;}
+  const opts={sourceLanguage:'en',targetLanguage:language};
+  if(!window.Translator){showLanguageChoice('en');deviceOptions.set('turboshot-device-language','en');message(deviceMessage,'This browser cannot translate the app. You can use your browser’s page translation instead.');return;}
+  try{
+    const availability=await window.Translator.availability(opts);if(run!==translationRun)return;
+    if(availability==='unavailable' || availability==null)throw new Error('unsupported');
+    if(restore && availability!=='available'){showLanguageChoice('en');message(deviceMessage,'Select your language again to finish setting it up.');return;}
+    message(deviceMessage,availability==='available'?'Changing language…':'Preparing your language. Your browser may download language files…');
+    const translator=await window.Translator.create(opts);if(run!==translationRun){translator.destroy?.();return;}
+    deviceTranslator=translator;showLanguageChoice(language);deviceOptions.set('turboshot-device-language',language);document.documentElement.lang=language;message(deviceMessage,'');
+    await translateInterface(document.body,run);
+  }catch{if(run===translationRun){showLanguageChoice('en');deviceOptions.set('turboshot-device-language','en');message(deviceMessage,'This language is not available in this browser. Try your browser’s page translation.');}}
+}
+languagePicker.addEventListener('change',e=>{if(e.target.value==='other'){otherLanguage.hidden=false;$('#other-language-code').focus();return;}otherLanguage.hidden=true;return setDeviceLanguage(e.target.value);});
+$('#apply-language').addEventListener('click',()=>{try{const [language]=Intl.getCanonicalLocales($('#other-language-code').value.trim());if(!language)throw new Error('invalid');setDeviceLanguage(language);}catch{message(deviceMessage,'Enter a valid language code, such as sw or en-GB.');}});
+const translationObserver=new MutationObserver(records=>{if(!deviceTranslator)return;for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)translateInterface(node,translationRun);else if(node.nodeType===3 && node.parentElement && !excludedFromTranslation(node))translateInterface(node.parentElement,translationRun);});
+translationObserver.observe(document.body,{childList:true,subtree:true});
+const savedLanguage=deviceOptions.get('turboshot-device-language','en');if(savedLanguage!=='en')setDeviceLanguage(savedLanguage,{restore:true});
 async function init() {
   const hash = new URLSearchParams(location.hash.slice(1));
   const kind = hash.has('reset') ? 'reset' : hash.has('verify') ? 'verify' : '';
