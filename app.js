@@ -312,8 +312,11 @@ function renderPost(p) {
   const avatar=el('div','avatar'); paintAvatar(avatar,{id:p.userId,username:p.username,avatar:p.avatar}); head.append(avatar,user);
   if (p.kind === 'zap') head.append(el('span','post-label','ZAP ϟ'));
   card.append(head,el('p','post-text',p.text));
+  const postLinks=()=>{
   if(p.circleName) card.append(el('p','circle-badge',`◎ ${p.circleName}`));
   card.append(button('Open post','text-button post-open',()=>{const reader=$('#reader-content');reader.replaceChildren(renderPost(p));reader.querySelector('.post-open')?.remove();openDialog('#reader-dialog');}));
+  };
+  if(p.kind==='zap') postLinks();
   if(p.kind==='zap') {
     card.dataset.zap='true';
     if(p.recommendationReason) card.append(el('p','zap-reason',p.recommendationReason));
@@ -340,6 +343,7 @@ function renderPost(p) {
     }
     card.append(media);
   }
+  if(p.kind!=='zap') postLinks();
   const actions = el('div','post-actions');
   const like = button(`♡ ${p.likes}`,'action',() => perform('react',{id:p.id,value:p.reaction === 1 ? 0 : 1},card));
   like.setAttribute('aria-label',`${p.reaction === 1 ? 'Unlike' : 'Like'} post, ${p.likes} likes`); like.setAttribute('aria-pressed',String(p.reaction === 1)); if (p.reaction === 1) like.classList.add('reacted');
