@@ -8,7 +8,7 @@ function harness(){
  const document={querySelectorAll:()=>[...nodes.values()].filter(n=>n.attrs['aria-invalid'])};
  const context=vm.createContext({$,document,sessionStorage:{setItem:(k,v)=>saved.set(k,v)},seenThisVisit:new Set(),message:(n,value)=>n.textContent=value,openDialog:s=>query(s).open=true,toast(){},updateAccount(){},loadFeed:async()=>feedLoads++,api:async(action,input)=>{calls.push({action,input});const answer=answers.shift();if(answer instanceof Error)throw answer;return answer;}});
  function $(s){return query(s);}
- vm.runInContext("let authMode='login',otpChallenge='',linkTicket='',session='',me=null;",context);
+ vm.runInContext("let authMode='login',otpChallenge='',linkTicket='',session='',me=null,verificationFlow='login'; function saveSession(token){session=token;sessionStorage.setItem('turboshot-session',token);}",context);
  vm.runInContext(source,context);
  return {node,calls,answers,saved,feedLoads:()=>feedLoads,state:()=>vm.runInContext('({authMode,otpChallenge,session,me})',context),show:mode=>vm.runInContext(`showAuth('${mode}')`,context),submit:()=>node('auth-form').events.submit({preventDefault(){}}),resend:()=>node('resend').events.click()};
 }

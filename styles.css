@@ -47,3 +47,4 @@ input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="tr
   .hero-copy{max-width:56%}
   .hero-logo{width:min(38%,175px);right:2%}
 }
+.post-menu{position:relative}.post-menu summary{cursor:pointer;list-style:none;padding:2px 10px;font-size:21px;line-height:1}.post-menu summary::-webkit-details-marker{display:none}.post-menu[open]{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.post-menu .text-button{padding:5px}.playlist-section{padding:16px 0;border-bottom:1px solid var(--line)}.playlist-section h3{margin:0 0 8px}.playlist-section>.text-button{margin-right:16px}.playlist-entry .post{margin-bottom:6px}

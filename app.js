@@ -61,29 +61,29 @@ function clearVideoSelection() {
   $('#upload-preview').pause(); $('#upload-preview').removeAttribute('src'); $('#upload-preview').load(); $('#upload-preview').hidden=true;
   if(previewURL) URL.revokeObjectURL(previewURL); previewURL='';
   $('#upload-progress').hidden=true; $('#upload-progress').value=0;
-  $('#upload-status').textContent='Choose an MP4 or WebM, up to 25 MB and 90 seconds.';
+  $('#upload-status').textContent='Choose an MP4, MOV, MKV or WebM, up to 50 MB and 5 minutes 45 seconds.';
 }
 $('#post-video').addEventListener('change',async () => {
   await cancelUpload(); clearVideoSelection();
   const file=$('#post-video').files[0]; if(!file) return;
-  const type=file.type || (/\.mp4$/i.test(file.name)?'video/mp4':/\.webm$/i.test(file.name)?'video/webm':'');
-  if(!['video/mp4','video/webm'].includes(type) || file.size<32 || file.size>25*1024*1024) { $('#post-video').value=''; message($('#post-message'),'Choose an MP4 or WebM file, up to 25 MB.'); return; }
+  const types={mp4:'video/mp4',mov:'video/quicktime',mkv:'video/x-matroska',webm:'video/webm'}; const type=types[file.name.split('.').pop().toLowerCase()] || file.type;
+  if(!['video/mp4','video/webm','video/quicktime','video/x-matroska'].includes(type) || file.size<32 || file.size>50*1024*1024) { $('#post-video').value=''; message($('#post-message'),'Choose an MP4, MOV, MKV or WebM video, up to 50 MB.'); return; }
   const selection=videoSelection;
   previewURL=URL.createObjectURL(file); const preview=$('#upload-preview'); preview.hidden=false;
   preview.onloadedmetadata=()=>{
     if(selection!==videoSelection) return;
-    if(!Number.isFinite(preview.duration) || preview.duration<=0 || preview.duration>90) { selectedVideo=null; message($('#post-message'),'Choose a video that is 90 seconds or shorter.'); return; }
+    if(!Number.isFinite(preview.duration) || preview.duration<=0 || preview.duration>345) { selectedVideo=null; message($('#post-message'),'Choose a video that is 5 minutes and 45 seconds or shorter.'); return; }
     selectedVideo={file,type,duration:preview.duration};
     $('#upload-status').textContent=`${file.name} · ${(file.size/1024/1024).toFixed(1)} MB · ${Math.ceil(preview.duration)} seconds. Ready to upload.`;
     message($('#post-message'),'');
   };
-  preview.onerror=()=>{ if(selection===videoSelection) { selectedVideo=null; message($('#post-message'),'This browser cannot read the video. Try an H.264 MP4 or a WebM.'); } };
+  preview.onerror=()=>{ if(selection===videoSelection) { selectedVideo=null; message($('#post-message'),'This browser cannot read this video. Try converting it to an MP4 and select it again.'); } };
   preview.src=previewURL;
 });
 function uploadFile(url,selection) {
   return new Promise((resolve,reject)=>{
     const xhr=uploadXHR=new XMLHttpRequest();
-    xhr.open('PUT',url); xhr.timeout=180000;
+    xhr.open('PUT',url); xhr.timeout=900000;
     xhr.setRequestHeader('Content-Type',selection.type); xhr.setRequestHeader('Cache-Control','max-age=60');
     xhr.upload.onprogress=e=>{ if(e.lengthComputable) { const value=Math.round(100*e.loaded/e.total); $('#upload-progress').value=value; $('#upload-status').textContent=`Uploading your Zap… ${value}%`; } };
     xhr.onload=()=>xhr.status>=200 && xhr.status<300 ? resolve() : reject(new Error('Video storage rejected the upload. Check your file and try again.'));
@@ -203,7 +203,7 @@ for (const id of ['launch','quick-post']) $(`#${id}`).addEventListener('click', 
 $('#quick-zap').addEventListener('click', () => compose('zap'));
 $('#post-form').addEventListener('submit', async e => {
   e.preventDefault(); const submit = e.target.querySelector('[type=submit]'); submit.disabled = true; submit.textContent='Publishing…';
-  const kind=$('#post-kind').value, operation=postOperation; let imageUploadId='';
+  const kind=$('#post-kind').value, operation=postOperation; let imageUploadId='',thumbnailUploadId='';
   try {
     let uploadId='';
     if(kind==='zap') {
@@ -222,12 +222,14 @@ $('#post-form').addEventListener('submit', async e => {
     if(kind!=='zap' && $('#post-media').files[0]) {imageUploadId=await uploadImage($('#post-media').files[0],'image');uploadId=imageUploadId;}
     if(!$('#post-dialog').open || operation!==postOperation) {if(imageUploadId)await api('cancel-upload',{uploadId:imageUploadId});return;}
     const tags=$('#post-tags').value.split(',').map(x=>x.trim().toLowerCase().replace(/^#/, '')).filter(Boolean);
-    const published=await api('post',{circleId:$('#post-circle').value,kind,text:$('#post-text').value,media:'',uploadId,category:kind==='zap'?$('#post-category').value:'other',tags:kind==='zap'?tags:[]});
+    if(kind==='zap' && $('#zap-thumbnail').files[0]) thumbnailUploadId=await uploadImage($('#zap-thumbnail').files[0],'image');
+    if(!$('#post-dialog').open || operation!==postOperation) {if(thumbnailUploadId)await api('cancel-upload',{uploadId:thumbnailUploadId});return;}
+    const published=await api('post',{circleId:$('#post-circle').value,kind,text:$('#post-text').value,media:'',uploadId,thumbnailUploadId,thumbnailUrl:kind==='zap' && !thumbnailUploadId?$('#zap-thumbnail-url').value.trim():'',category:kind==='zap'?$('#post-category').value:'other',tags:kind==='zap'?tags:[]});
     pendingUpload=null;
     $('#post-dialog').close(); toast('Your post has been published.');
     if(mode==='latest' && !searchTerm && (published.post.circleId || '')===circleId) {$('#feed .empty')?.remove();$('#feed').prepend(renderPost(published.post));loadedPostIds.add(published.post.id);observeViews();}
     else await chooseMode(kind === 'zap' ? 'zaps' : 'latest');
-  } catch (err) { message($('#post-message'),err.message); if(imageUploadId)try{await api('cancel-upload',{uploadId:imageUploadId});}catch{} if(pendingUpload && !pendingUpload.uploaded) await cancelUpload(); }
+  } catch (err) { message($('#post-message'),err.message); if(imageUploadId)try{await api('cancel-upload',{uploadId:imageUploadId});}catch{} if(thumbnailUploadId)try{await api('cancel-upload',{uploadId:thumbnailUploadId});}catch{} if(pendingUpload && !pendingUpload.uploaded) await cancelUpload(); }
   finally { submit.disabled = false; submit.textContent='Publish'; $('#post-video').disabled=false; $('#post-kind').disabled=false; }
 });
 const modeText = {
@@ -305,6 +307,35 @@ async function perform(action, input, card, onSuccess) {
   }
   catch (err) { toast(err.message); }
 }
+async function saveToPlaylist(post) {
+  if(!needAccount()) return;
+  try {
+    const {playlists}=await api('playlists',{},'GET');
+    const choice=prompt('Save to which playlist? Enter its number:\n'+playlists.map((p,i)=>`${i+1}. ${p.name}`).join('\n'),'1');
+    if(choice===null)return;const index=Number(choice)-1;
+    if(!Number.isInteger(index) || !playlists[index]) {toast('Choose a playlist number.');return;}
+    const result=await api('playlist-save',{listId:playlists[index].id,postId:post.id});toast(result.message);
+  } catch(error) {toast(error.message);}
+}
+async function showPlaylists() {
+  if(!needAccount()) return;
+  const dialog=$('#playlists-dialog'),list=$('#playlists-list');if(!dialog.open)openDialog('#playlists-dialog');list.replaceChildren(el('p','','Loading playlists…'));
+  try {
+    const data=await api('playlists',{},'GET');list.replaceChildren();
+    for(const playlist of data.playlists) {
+      const section=el('section','playlist-section');section.append(el('h3','',`${playlist.name} (${playlist.posts.length})`));
+      if(playlist.id!=='watch-later') {
+        section.append(button('Rename','text-button',async()=>{const name=prompt('New playlist name:',playlist.name);if(!name?.trim())return;try{await api('playlist-rename',{listId:playlist.id,name:name.trim()});await showPlaylists();}catch(error){toast(error.message);}}));
+        section.append(button('Delete playlist','text-button',async()=>{if(!confirm(`Delete ${playlist.name}?`))return;try{await api('playlist-delete',{listId:playlist.id});await showPlaylists();}catch(error){toast(error.message);}}));
+      }
+      if(!playlist.posts.length)section.append(el('p','fine','No saved posts yet.'));
+      for(const post of playlist.posts){const row=el('div','playlist-entry');row.append(renderPost(post),button('Remove from playlist','text-button',async()=>{try{await api('playlist-save',{listId:playlist.id,postId:post.id,remove:true});await showPlaylists();}catch(error){toast(error.message);}}));section.append(row);}
+      list.append(section);
+    }
+  } catch(error) {list.replaceChildren(el('p','',error.message));}
+}
+$('#playlists-button').addEventListener('click',showPlaylists);
+$('#playlist-create').addEventListener('click',async()=>{const name=prompt('Name your playlist:');if(!name?.trim())return;try{await api('playlist-create',{name:name.trim()});await showPlaylists();}catch(error){toast(error.message);}});
 function renderPost(p) {
   const card = el('article',`post ${p.kind === 'zap' ? 'zap' : ''}`); card.dataset.id = p.id;
   const head = el('div','post-head'), user = el('div');
@@ -326,7 +357,7 @@ function renderPost(p) {
     const media=el('div','post-media');
     let url; try { url=new URL(p.media); if(url.protocol!=='https:') url=null; } catch {}
     if(p.kind==='zap' && url) {
-      const video=el('video'); video.controls=true; video.playsInline=true; video.preload='metadata'; video.src=url.href;
+      const video=el('video'); video.controls=true; video.playsInline=true; video.preload='metadata'; video.src=url.href; if(p.thumbnail) video.poster=p.thumbnail;
       video.setAttribute('aria-label',`Zap by @${p.username}: ${p.text}`);
       video.addEventListener('error',()=>toast('This video could not play. Try again later or report the Zap.'));
       media.append(video); trackPlayback(video,p,card);
@@ -353,9 +384,12 @@ function renderPost(p) {
   const toggle = button(`◌ ${p.commentCount}`,'action',() => { comments.hidden = !comments.hidden; toggle.setAttribute('aria-expanded',String(!comments.hidden)); }); toggle.setAttribute('aria-label',`Show ${p.commentCount} comments`); toggle.setAttribute('aria-expanded','false');
   actions.append(like,dislike,toggle,el('span','views',`◉ ${p.views} views`)); card.append(actions);
   const tools = el('div','post-tools');
+  const menu=el('details','post-menu'),summary=el('summary','','⋯');summary.setAttribute('aria-label','Post options');menu.append(summary);
+  menu.append(button('Save to playlist','text-button',()=>saveToPlaylist(p)));
+  menu.append(button('Not interested','text-button',()=>{if(needAccount())perform('not-interested',{id:p.id},null,()=>loadFeed());}));
+  tools.append(menu);
   if(p.kind==='zap') {
     tools.append(button('Why this Zap?','text-button',()=>toast(p.recommendationReason || 'Zaps starts with popular creators, then learns from your watches and reactions.')));
-    tools.append(button('Not interested','text-button',()=>perform('not-interested',{id:p.id},null,()=>loadFeed())));
   }
   tools.append(button('Report','text-button',() => { if (!needAccount()) return; const reason = prompt('What should the administrator review? For a comment, include the username and a short description.'); if (reason?.trim()) perform('report',{id:p.id,reason},card); }));
   if (me && p.userId !== me.id) tools.append(button('Block creator','text-button',() => { if (confirm(`Hide @${p.username} from your feed?`)) perform('block',{username:p.username},null,() => loadFeed()); }));
