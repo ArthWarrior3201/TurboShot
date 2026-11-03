@@ -56,18 +56,38 @@ async function cancelUpload() {
   const pending=pendingUpload; pendingUpload=null;
   if(pending && session) { try { await api('cancel-upload',{uploadId:pending.id}); } catch {} }
 }
+let cancelVideoProcessing=null;
+function processVideo(selection) {
+  return new Promise((resolve,reject)=>{
+    if(!window.Worker){reject(new Error('This browser cannot process videos. Choose an MP4 under 50 MB.'));return;}
+    const worker=new Worker(new URL('video-processor.js?v=1',document.baseURI));
+    const finish=(error,value)=>{clearTimeout(watchdog);worker.terminate();cancelVideoProcessing=null;$('#processing-note').hidden=true;error?reject(error):resolve(value);};
+    const watchdog=setTimeout(()=>finish(new Error('Processing took too long. Try a smaller video.')),35*60*1000);
+    cancelVideoProcessing=()=>finish(new Error('Video processing cancelled.'));
+    $('#processing-note').hidden=false;$('#upload-progress').hidden=false;
+    worker.onerror=()=>finish(new Error('Video processing could not start. Check your connection or try a smaller MP4.'));
+    worker.onmessage=({data})=>{
+      if(data.error){finish(new Error(data.error));return;}
+      if(data.done){const file=data.original?selection.file:new File([data.buffer],'zap.mp4',{type:'video/mp4'});if(file.size>50*1024*1024){finish(new Error('The processed video is still too large.'));return;}finish(null,{file,type:data.original?selection.type:'video/mp4',duration:data.duration});return;}
+      $('#upload-status').textContent=data.status;$('#upload-progress').value=data.progress || 0;
+    };
+    worker.postMessage({file:selection.file,force:selection.forceProcessing || selection.file.size>50*1024*1024});
+  });
+}
 function clearVideoSelection() {
+  cancelVideoProcessing?.();
   videoSelection++; selectedVideo=null;
   $('#upload-preview').pause(); $('#upload-preview').removeAttribute('src'); $('#upload-preview').load(); $('#upload-preview').hidden=true;
   if(previewURL) URL.revokeObjectURL(previewURL); previewURL='';
   $('#upload-progress').hidden=true; $('#upload-progress').value=0;
-  $('#upload-status').textContent='Choose an MP4, MOV, MKV or WebM, up to 50 MB and 5 minutes 45 seconds.';
+  $('#upload-status').textContent='Choose an MP4, MOV, MKV or WebM, up to 500 MB to process. Published videos must fit within 50 MB and 5 minutes 45 seconds.';
 }
 $('#post-video').addEventListener('change',async () => {
   await cancelUpload(); clearVideoSelection();
   const file=$('#post-video').files[0]; if(!file) return;
   const types={mp4:'video/mp4',mov:'video/quicktime',mkv:'video/x-matroska',webm:'video/webm'}; const type=types[file.name.split('.').pop().toLowerCase()] || file.type;
-  if(!['video/mp4','video/webm','video/quicktime','video/x-matroska'].includes(type) || file.size<32 || file.size>50*1024*1024) { $('#post-video').value=''; message($('#post-message'),'Choose an MP4, MOV, MKV or WebM video, up to 50 MB.'); return; }
+  if(!['video/mp4','video/webm','video/quicktime','video/x-matroska'].includes(type) || file.size<32 || file.size>500*1024*1024) { $('#post-video').value=''; message($('#post-message'),'Choose an MP4, MOV, MKV or WebM video, up to 500 MB for processing.'); return; }
+  selectedVideo={file,type,duration:0,forceProcessing:true};
   const selection=videoSelection;
   previewURL=URL.createObjectURL(file); const preview=$('#upload-preview'); preview.hidden=false;
   preview.onloadedmetadata=()=>{
@@ -77,7 +97,7 @@ $('#post-video').addEventListener('change',async () => {
     $('#upload-status').textContent=`${file.name} · ${(file.size/1024/1024).toFixed(1)} MB · ${Math.ceil(preview.duration)} seconds. Ready to upload.`;
     message($('#post-message'),'');
   };
-  preview.onerror=()=>{ if(selection===videoSelection) { selectedVideo=null; message($('#post-message'),'This browser cannot read this video. Try converting it to an MP4 and select it again.'); } };
+  preview.onerror=()=>{ if(selection===videoSelection) { selectedVideo={file,type,duration:0,forceProcessing:true};$('#upload-status').textContent='This video will be checked and converted when you publish.'; } };
   preview.src=previewURL;
 });
 function uploadFile(url,selection) {
@@ -209,7 +229,12 @@ $('#post-form').addEventListener('submit', async e => {
     if(kind==='zap') {
       if(!selectedVideo) throw new Error('Choose a valid video and wait for its preview before uploading.');
       $('#post-video').disabled=true; $('#post-kind').disabled=true;
-      const selection=selectedVideo;
+      let selection=selectedVideo;
+      if(!pendingUpload && (selection.file.size>25*1024*1024 || selection.forceProcessing)) {
+        submit.textContent='Processing…';selection=await processVideo(selection);
+        if(!$('#post-dialog').open || operation!==postOperation)return;
+        selectedVideo=selection;submit.textContent='Publishing…';
+      }
       if(!pendingUpload) {
         message($('#post-message'),'Preparing your upload…');
         const data=await api('upload-intent',{type:selection.type,size:selection.file.size,duration:selection.duration});
