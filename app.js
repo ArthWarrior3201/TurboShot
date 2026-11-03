@@ -109,6 +109,7 @@ function updateAccount() {
   $('#right-login').parentElement.hidden=!!me;
 }
 function needAccount() { if (me) return true; showAuth('login'); return false; }
+let verificationFlow='login';
 function showAuth(next = 'login') {
   authMode = next;
   if(next!=='verify-otp') otpChallenge='';
@@ -119,7 +120,7 @@ function showAuth(next = 'login') {
   $('#auth-form').reset();
   $('#auth-password').setCustomValidity(''); hidePassword();
   $('#auth-title').textContent = ({ 'verify-otp':'Check your email',login:'Welcome back',signup:'Create your account', 'request-reset':'Reset your password',resend:'Verify your email',reset:'Choose a new password',verify:'Verify your email' })[next];
-  $('#auth-description').textContent = ({ 'verify-otp':'Enter the 6-digit code we sent you. It expires in 10 minutes.',login:'Sign in to your TurboShot account.', signup:'Enter your details to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send a new code to finish creating your account.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
+  $('#auth-description').textContent = ({ 'verify-otp':'Enter the 6-digit code we sent you. It expires in 10 minutes. If you do not see it, check your Spam or Junk folder.',login:'Sign in to your TurboShot account.', signup:'Enter your details to get started.', 'request-reset':'We’ll email you a single-use password reset link.', resend:'We’ll send a new code to finish creating your account.', reset:'Choose a new password with at least 12 characters.',verify:'Confirm this email address for your TurboShot account.' })[next];
   $('#username-label').hidden = !signup; $('#auth-username').required = signup;
   $('#email-label').hidden = reset || verify || code; $('#auth-email').required = !reset && !verify && !code;
   $('#code-label').hidden=!code; $('#auth-code').required=code;
@@ -130,7 +131,7 @@ function showAuth(next = 'login') {
   $('#auth-password').minLength = signup || reset ? 12 : 1;
   $('#auth-password').autocomplete = signup || reset ? 'new-password' : 'current-password';
   $('#password-help').hidden = !signup && !reset; $('#invite-label').hidden = true;
-  $('#auth-submit').textContent = ({'verify-otp':'Verify code',login:'Continue',signup:'Create account','request-reset':'Send reset link',resend:'Send verification code',reset:'Save password',verify:'Verify email'})[next];
+  $('#auth-submit').textContent = ({'verify-otp':verificationFlow==='signup'?'Create account':'Log in',login:'Continue',signup:'Get Verification Code','request-reset':'Send reset link',resend:'Send verification code',reset:'Save password',verify:'Verify email'})[next];
   $('#auth-submit').hidden = false;
   $('#auth-switch').hidden = signup || code;
   $('#auth-switch').textContent = login ? 'Create an account' : 'Return to sign in';
@@ -160,13 +161,13 @@ $('#resend').addEventListener('click', async () => {
 $('#auth-form').addEventListener('invalid',e=>{e.target.setAttribute('aria-invalid','true');if(e.target.id==='auth-password' && e.target.validity.tooShort)e.target.setCustomValidity('Use at least 12 characters for your password.');},true);
 $('#auth-form').addEventListener('input',e=>{e.target.removeAttribute('aria-invalid');e.target.setCustomValidity('');});
 $('#auth-form').addEventListener('submit', async e => {
-  e.preventDefault(); const submit = $('#auth-submit'); submit.disabled = true; message($('#auth-message'),''); submit.setAttribute('aria-busy','true'); hidePassword();
+  e.preventDefault(); const submit = $('#auth-submit'); const submittedMode=authMode, originalLabel=submit.textContent; submit.disabled = true; if(authMode==='signup') submit.textContent='Please Wait…'; else if(authMode==='login' || authMode==='verify-otp') submit.textContent=authMode==='verify-otp' && verificationFlow==='signup'?'Creating Account…':'Logging In…'; message($('#auth-message'),''); submit.setAttribute('aria-busy','true'); hidePassword();
   try {
     const payload = { email:$('#auth-email').value.trim(), login:$('#auth-email').value.trim(), username:$('#auth-username').value.trim(), password:$('#auth-password').value, invite:$('#auth-invite').value, ticket:linkTicket, challenge:otpChallenge, code:$('#auth-code').value.trim() };
     const data = await api(authMode, payload);
     $('#auth-password').value = '';
     if(data.requiresCode && data.challenge) {
-      showAuth('verify-otp'); otpChallenge=data.challenge; $('#auth-code').focus(); message($('#auth-message'),data.message,true);
+      verificationFlow=submittedMode==='signup'?'signup':'login'; showAuth('verify-otp'); otpChallenge=data.challenge; $('#auth-code').focus(); message($('#auth-message'),data.message,true);
     } else if ((authMode === 'login' || authMode==='verify-otp') && data.token && data.user) {
       saveSession(data.token); me = data.user; seenThisVisit.clear(); updateAccount();
       $('#auth-dialog').close(); toast(`Welcome, @${me.username}.`); await loadFeed();
@@ -181,7 +182,7 @@ $('#auth-form').addEventListener('submit', async e => {
     $('#auth-form [aria-invalid=true]')?.focus();
     if(authMode==='signup' && /invitation code/i.test(err.message)) {$('#invite-label').hidden=false;$('#invite-label').open=true;$('#auth-invite').focus();}
   }
-  finally { submit.disabled = false; submit.removeAttribute('aria-busy'); }
+  finally { submit.disabled = false; if(authMode===submittedMode) submit.textContent=originalLabel; submit.removeAttribute('aria-busy'); }
 });
 $('#auth-dialog').addEventListener('close', () => { otpChallenge=''; $('#auth-code').value=''; $('#auth-password').value = ''; hidePassword(); $('#auth-submit').hidden = false; });
 for (const id of ['login','right-login']) $(`#${id}`).addEventListener('click', () => showAuth('login'));
