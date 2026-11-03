@@ -151,7 +151,7 @@ function showAuth(next = 'login') {
   $('#auth-password').minLength = signup || reset ? 12 : 1;
   $('#auth-password').autocomplete = signup || reset ? 'new-password' : 'current-password';
   $('#password-help').hidden = !signup && !reset; $('#invite-label').hidden = true;
-  $('#auth-submit').textContent = ({'verify-otp':verificationFlow==='signup'?'Create account':'Log in',login:'Continue',signup:'Get Verification Code','request-reset':'Send reset link',resend:'Send verification code',reset:'Save password',verify:'Verify email'})[next];
+  $('#auth-submit').textContent = ({'verify-otp':verificationFlow==='signup'?'Create account':'Login',login:'Continue',signup:'Get Verification Code','request-reset':'Send reset link',resend:'Send verification code',reset:'Save password',verify:'Verify email'})[next];
   $('#auth-submit').hidden = false;
   $('#auth-switch').hidden = signup || code;
   $('#auth-switch').textContent = login ? 'Create an account' : 'Return to sign in';
@@ -181,7 +181,7 @@ $('#resend').addEventListener('click', async () => {
 $('#auth-form').addEventListener('invalid',e=>{e.target.setAttribute('aria-invalid','true');if(e.target.id==='auth-password' && e.target.validity.tooShort)e.target.setCustomValidity('Use at least 12 characters for your password.');},true);
 $('#auth-form').addEventListener('input',e=>{e.target.removeAttribute('aria-invalid');e.target.setCustomValidity('');});
 $('#auth-form').addEventListener('submit', async e => {
-  e.preventDefault(); const submit = $('#auth-submit'); const submittedMode=authMode, originalLabel=submit.textContent; submit.disabled = true; if(authMode==='signup') submit.textContent='Please Wait…'; else if(authMode==='login' || authMode==='verify-otp') submit.textContent=authMode==='verify-otp' && verificationFlow==='signup'?'Creating Account…':'Logging In…'; message($('#auth-message'),''); submit.setAttribute('aria-busy','true'); hidePassword();
+  e.preventDefault(); const submit = $('#auth-submit'); const submittedMode=authMode, originalLabel=submit.textContent; submit.disabled = true; if(authMode==='signup') submit.textContent='Please Wait…'; else if(authMode==='login') submit.textContent='Please Wait...'; else if(authMode==='verify-otp') submit.textContent=verificationFlow==='signup'?'Creating Account…':'Logging In…'; message($('#auth-message'),''); submit.setAttribute('aria-busy','true'); hidePassword();
   try {
     const payload = { email:$('#auth-email').value.trim(), login:$('#auth-email').value.trim(), username:$('#auth-username').value.trim(), password:$('#auth-password').value, invite:$('#auth-invite').value, ticket:linkTicket, challenge:otpChallenge, code:$('#auth-code').value.trim() };
     const data = await api(authMode, payload);
